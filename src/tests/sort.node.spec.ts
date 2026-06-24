@@ -66,9 +66,9 @@ describe("getOrderingMap", () => {
       addNode(form, { id: "b" });
       addNode(form, { id: "c" });
 
-      expect(form.fields.a.order).toBe(1);
-      expect(form.fields.b.order).toBe(2);
-      expect(form.fields.c.order).toBe(3);
+      expect(form.fields.a!.order).toBe(1);
+      expect(form.fields.b!.order).toBe(2);
+      expect(form.fields.c!.order).toBe(3);
 
       const sorted = getSortedNodes(form);
       const fieldIds = sorted.map((n) => n.id);

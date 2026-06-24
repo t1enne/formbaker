@@ -115,8 +115,8 @@ describe("formbaker dependencies", () => {
 
     removeDependency(form, d);
 
-    expect(form.dependencies.forward[d.source].length).toBe(0);
-    expect(form.dependencies.backward[d.target].length).toBe(0);
+    expect(form.dependencies.forward[d.source]!.length).toBe(0);
+    expect(form.dependencies.backward[d.target]!.length).toBe(0);
   });
 
   it("should remove nodes and its edges", () => {
@@ -148,6 +148,6 @@ describe("formbaker dependencies", () => {
     expect(success).toBeTruthy();
 
     expect(form.fields["fieldC"]).toBeFalsy();
-    expect(form.dependencies.forward["fieldB"].length).toBe(0);
+    expect(form.dependencies.forward["fieldB"]!.length).toBe(0);
   });
 });

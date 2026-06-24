@@ -174,7 +174,7 @@ const clearForm = <T extends Formbaker>(form: T): T => {
 const getSchema = <T extends Formbaker>(form: T, values: any) => {
   return Object.values(form.fields)
     .map(toFormSchema(form, values))
-    .reduce((a, c) => merge(a, c), {});
+    .reduce((a, c) => ({ ...a, ...c }), {});
 };
 
 const formbakerResolver =
@@ -182,8 +182,8 @@ const formbakerResolver =
   (...args: any[]) => {
     const values = args[0];
     console.debug(values);
-    const schema = getSchema(formbaker, values);
-    return arktypeResolver(schema)(...(args as [any, any, any]));
+    const schema = type(getSchema(formbaker, values));
+    return arktypeResolver(schema as any)(...(args as [any, any, any]));
   };
 
 const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
@@ -209,15 +209,18 @@ const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
     order: number,
   ): PositionedNode<S> => {
     if (type === "_node") {
+      const field = form.fields[id];
+      invariant(field, `No field found for id: ${id}`);
       return {
         type,
         id,
-        node: merge(form.fields[id], { order: order + 1 }),
+        node: merge(field, { order: order + 1 }),
         position: { x: 0, y: 0 },
       } satisfies PositionedField<S>;
     }
     if (type === "_section") {
       const section = form.sections[id];
+      invariant(section, `No section found for id: ${id}`);
       return {
         type,
         id,
