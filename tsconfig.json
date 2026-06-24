@@ -10,19 +10,15 @@
 		"outDir": "dist",
 		"rootDir": ".",
 		"paths": {
-			"@/*": [
-				"./*"
-			],
-			"@/libs/formbaker/*": [
-				"./src/*"
-			],
-			"@/libs/formbaker": [
-				"./src/engine.ts"
-			]
+			"@/engine": ["./src/engine"],
+			"@/utils": ["./src/utils"],
+			"@/types": ["./src/types"],
+			"@/plugins/*": ["./src/plugins/*"]
 		}
 	},
 	"include": [
 		"src/**/*.ts",
+		"tests/**/*.ts",
 		"index.ts"
 	],
 	"exclude": [

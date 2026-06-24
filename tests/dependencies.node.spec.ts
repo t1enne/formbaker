@@ -5,8 +5,8 @@ import {
   addDependency,
   validate,
   removeDependency,
-} from "@/libs/formbaker/engine";
-import { flow } from "../utils";
+} from "@/engine";
+import { flow } from "@/utils";
 import { describe, it, expect } from "vitest";
 
 describe("formbaker dependencies", () => {

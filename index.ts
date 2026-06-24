@@ -16,4 +16,5 @@ export {
 } from "./src/engine";
 
 export { arktypePlugin } from "./src/plugins/arktype";
+export { zodPlugin } from "./src/plugins/zod";
 export type { FormbakerPlugin } from "./src/types";

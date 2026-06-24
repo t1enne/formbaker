@@ -1,12 +1,9 @@
 import { type } from "arktype";
-import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   Formbaker,
   FormbakerDependency,
   FormbakerField,
   FormbakerSection,
-  TranslationDict,
-  PlainObject,
 } from "./types";
 
 /**
@@ -20,7 +17,7 @@ import {
  * Checks if a node should be included based on its backward dependencies.
  * Dependency conditions are arktype schema strings and are evaluated directly.
  */
-export const shouldInclude = (
+const shouldInclude = (
   form: Formbaker,
   node: FormbakerField | FormbakerSection,
   value: Record<string, unknown> | undefined,
@@ -41,22 +38,6 @@ export const shouldInclude = (
     const hasError = r instanceof type.errors;
     return !hasError;
   });
-};
-
-const getTranslatedText = (
-  text: Partial<TranslationDict> | undefined,
-  locale: "it" | "eng" | "en" = "it",
-): string => {
-  if (!text) {
-    return "";
-  }
-  if (typeof text === "string") {
-    return text;
-  }
-  if (locale == "en") {
-    return text.eng || text.it || "";
-  }
-  return text[locale] || text.it || "";
 };
 
 const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
@@ -87,19 +68,19 @@ const getIndexFromLetter = (letter: string) =>
 // --- Replacing es-toolkit functions ---
 
 /** Assertion: throws if condition is falsy. */
-export function invariant(condition: unknown, message?: string): asserts condition {
+function invariant(condition: unknown, message?: string): asserts condition {
   if (!condition) {
     throw new Error(message ?? "Invariant failed");
   }
 }
 
 /** Checks if value is strictly undefined. */
-export function isUndefined(x: unknown): x is undefined {
+function isUndefined(x: unknown): x is undefined {
   return x === void 0;
 }
 
 /** Creates a new object with specified keys omitted. */
-export function omit<T extends Record<string, any>, K extends keyof T>(
+function omit<T extends Record<string, any>, K extends keyof T>(
   obj: T,
   keys: readonly K[],
 ): Omit<T, K> {
@@ -111,10 +92,10 @@ export function omit<T extends Record<string, any>, K extends keyof T>(
 }
 
 /** Deep merge source into target (mutates target). Skips unsafe prototype keys. */
-export function merge<T extends Record<PropertyKey, any>, S extends Record<PropertyKey, any>>(
-  target: T,
-  source: S,
-): T & S {
+function merge<
+  T extends Record<PropertyKey, any>,
+  S extends Record<PropertyKey, any>,
+>(target: T, source: S): T & S {
   const unsafeKeys = new Set(["__proto__", "constructor", "prototype"]);
   const t = target as Record<string, unknown>;
   for (const key of Object.keys(source)) {
@@ -122,7 +103,10 @@ export function merge<T extends Record<PropertyKey, any>, S extends Record<Prope
     const sv = source[key];
     const tv = t[key];
     if (isMergeable(sv) && isMergeable(tv)) {
-      t[key] = merge(tv as Record<PropertyKey, unknown>, sv as Record<PropertyKey, unknown>);
+      t[key] = merge(
+        tv as Record<PropertyKey, unknown>,
+        sv as Record<PropertyKey, unknown>,
+      );
     } else if (Array.isArray(sv)) {
       t[key] = merge([] as unknown as Record<PropertyKey, unknown>, sv);
     } else if (isPlainObject(sv)) {
@@ -148,7 +132,7 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
  * Sorts an array by iteratee functions or property keys (ascending).
  * Returns a new array; does not mutate the original.
  */
-export function sortBy<T>(
+function sortBy<T>(
   arr: T[],
   criteria: Array<((item: T) => unknown) | keyof T>,
 ): T[] {
@@ -171,22 +155,22 @@ export function sortBy<T>(
 }
 
 /** Composes functions left-to-right. */
-export function flow<A extends unknown[], B, C>(
+function flow<A extends unknown[], B, C>(
   f1: (...args: A) => B,
   f2: (arg: B) => C,
 ): (...args: A) => C;
-export function flow<A extends unknown[], B, C, D>(
+function flow<A extends unknown[], B, C, D>(
   f1: (...args: A) => B,
   f2: (arg: B) => C,
   f3: (arg: C) => D,
 ): (...args: A) => D;
-export function flow<A extends unknown[], B, C, D, E>(
+function flow<A extends unknown[], B, C, D, E>(
   f1: (...args: A) => B,
   f2: (arg: B) => C,
   f3: (arg: C) => D,
   f4: (arg: D) => E,
 ): (...args: A) => E;
-export function flow(...funcs: Array<(...args: any[]) => unknown>) {
+function flow(...funcs: Array<(...args: any[]) => unknown>) {
   return function (this: unknown, ...args: unknown[]) {
     let result = funcs.length ? funcs[0]!.apply(this, args) : args[0];
     for (let i = 1; i < funcs.length; i++) {
@@ -196,10 +180,20 @@ export function flow(...funcs: Array<(...args: any[]) => unknown>) {
   };
 }
 
+const isNumber = (v: unknown): v is number =>
+  typeof v === "number" && !Number.isNaN(v);
+
 export {
-  getTranslatedText,
+  shouldInclude,
   isEqualDepencency,
   getNodeAtOrder,
   getIndexFromLetter,
   getLetterFromIndex,
+  invariant,
+  isUndefined,
+  omit,
+  merge,
+  sortBy,
+  isNumber,
+  flow,
 };

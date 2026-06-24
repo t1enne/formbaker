@@ -1,13 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  addDependency,
   addNode,
   addSection,
   create,
   getSortedNodes,
-  removeDependency,
   getOrderingMap,
-} from "../engine";
+} from "@/engine";
 
 describe("getOrderingMap", () => {
   it("numbers flat questions sequentially (no sections)", () => {

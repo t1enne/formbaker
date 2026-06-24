@@ -4,13 +4,14 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
-      "@/libs/formbaker/engine": resolve(__dirname, "src/engine.ts"),
-      "@/libs/formbaker/utils": resolve(__dirname, "src/utils.ts"),
-      "@/libs/formbaker": resolve(__dirname, "src/"),
+      "@/engine": resolve(__dirname, "src/engine.ts"),
+      "@/utils": resolve(__dirname, "src/utils.ts"),
+      "@/types": resolve(__dirname, "src/types.ts"),
+      "@/plugins": resolve(__dirname, "src/plugins/"),
     },
   },
   test: {
-    include: ["src/tests/**/*.spec.ts"],
+    include: ["tests/**/*.spec.ts", "tests/plugins/**/*.spec.ts"],
     exclude: [],
   },
 });
