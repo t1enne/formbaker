@@ -13,7 +13,6 @@ import { isEqualDepencency, toFormSchema } from "./utils";
 import { invariant, merge, omit, sortBy } from "es-toolkit";
 import { arktypeResolver } from "@hookform/resolvers/arktype";
 import dagre from "@dagrejs/dagre";
-import type { formbakerErrors } from "@/consts/formbaker-errors";
 
 export const NODE_WIDTH = 250;
 export const NODE_HEIGHT = 100;
@@ -45,7 +44,10 @@ const addNode = <T extends Formbaker>(
   return form;
 };
 
-const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): T => {
+const addDependency = <T extends Formbaker>(
+  form: T,
+  dep: FormbakerDependency,
+): T => {
   const { target, source } = dep;
   const isSection = (id: string) => Object.keys(form.sections).includes(id);
 
@@ -81,18 +83,18 @@ const removeDependency = <
 ) => {
   const { target, source } = dependency;
   // Add to forward map
-  const forwardMap =
+  const fwdList =
     form.dependencies.forward[source] ?? ([] as FormbakerDependency[]);
 
   // Add to backward map
-  const backwardMap =
+  const bwdList =
     form.dependencies.backward[target] ?? ([] as FormbakerDependency[]);
   // find the idx to remove
-  const fidx = forwardMap.findIndex((d) => isEqualDepencency(dependency, d));
-  const bidx = backwardMap.findIndex((d) => isEqualDepencency(dependency, d));
+  const fidx = fwdList.findIndex((d) => isEqualDepencency(dependency, d));
+  const bidx = bwdList.findIndex((d) => isEqualDepencency(dependency, d));
 
-  form.dependencies.forward[source] = forwardMap.toSpliced(fidx, 1);
-  form.dependencies.backward[target] = backwardMap.toSpliced(bidx, 1);
+  form.dependencies.forward[source] = fwdList.splice(fidx, 1);
+  form.dependencies.backward[target] = bwdList.splice(bidx, 1);
 
   return form;
 };
@@ -134,7 +136,7 @@ const addSection = <T extends Formbaker>(
 
 const removeSection = <T extends Formbaker>(form: T, sectionId: string) => {
   const section = form.sections[sectionId];
-  invariant(section.id, `No section ${sectionId}`);
+  invariant(section?.id, `No section ${sectionId}`);
   form.sections = omit(form.sections, [sectionId]);
   return form;
 };
@@ -169,13 +171,9 @@ const clearForm = <T extends Formbaker>(form: T): T => {
   return form;
 };
 
-const getSchema = <T extends Formbaker>(
-  form: T,
-  values: any,
-  formbakerErrs?: typeof formbakerErrors,
-) => {
+const getSchema = <T extends Formbaker>(form: T, values: any) => {
   return Object.values(form.fields)
-    .map(toFormSchema(form, values, formbakerErrs))
+    .map(toFormSchema(form, values))
     .reduce((a, c) => merge(a, c), {});
 };
 
