@@ -1,5 +1,4 @@
 import { create, validate } from "@/libs/formbaker/engine";
-import { type } from "arktype";
 import { describe, it, expect } from "vitest";
 
 const field = {
@@ -17,7 +16,7 @@ describe("formbaker selects", () => {
 
   it("should allow nullable state", () => {
     let formbakerValidateResult = validate(fb, { b: null });
-    expect(formbakerValidateResult).not.toBeInstanceOf(type.errors);
+    expect(formbakerValidateResult.success).toBe(true);
   });
 
   it("should disallow unspecified values", () => {

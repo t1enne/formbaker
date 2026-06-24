@@ -15,3 +15,6 @@ export {
   layoutedGraph,
   moveNode,
 } from "./src/engine";
+
+export { arktypePlugin } from "./src/plugins/arktype";
+export type { FormbakerPlugin } from "./src/types";

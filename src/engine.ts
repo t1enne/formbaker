@@ -1,4 +1,6 @@
 import { type } from "arktype";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
+import dagre from "@dagrejs/dagre";
 import {
   Formbaker,
   FormResult,
@@ -8,10 +10,18 @@ import {
   PositionedNode,
   PositionedSection,
   PositionedField,
+  FormbakerField,
 } from "./types";
-import { isEqualDepencency, toFormSchema, invariant, merge, omit, sortBy } from "./utils";
-import { arktypeResolver } from "@hookform/resolvers/arktype";
-import dagre from "@dagrejs/dagre";
+import { arktypePlugin } from "./plugins/arktype";
+import {
+  isEqualDepencency,
+  invariant,
+  merge,
+  omit,
+  sortBy,
+  shouldInclude,
+} from "./utils";
+import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 
 export const NODE_WIDTH = 250;
 export const NODE_HEIGHT = 100;
@@ -28,6 +38,7 @@ const create = <S extends PlainObject, T extends Formbaker<S>>(
       forward: {},
       backward: {},
     },
+    plugin: params.plugin ?? arktypePlugin,
   } as T;
 };
 
@@ -92,8 +103,10 @@ const removeDependency = <
   const fidx = fwdList.findIndex((d) => isEqualDepencency(dependency, d));
   const bidx = bwdList.findIndex((d) => isEqualDepencency(dependency, d));
 
-  form.dependencies.forward[source] = fwdList.splice(fidx, 1);
-  form.dependencies.backward[target] = bwdList.splice(bidx, 1);
+  fwdList.splice(fidx, 1);
+  bwdList.splice(bidx, 1);
+  form.dependencies.forward[source] = fwdList;
+  form.dependencies.backward[target] = bwdList;
 
   return form;
 };
@@ -156,12 +169,22 @@ const isCyclical = (
 };
 
 const validate = <T>(form: Formbaker, values: T): FormResult<T> => {
-  const schema = getSchema(form, values);
-  const validatorfn = type(schema);
-  const out = validatorfn(values) as T | type.errors;
-  return out instanceof type.errors
-    ? { success: false, data: out.summary, schema }
-    : { success: true, data: out, schema };
+  const schema = getSchema(form, values as Record<string, unknown>);
+  const result = schema["~standard"].validate(values);
+  if (result instanceof Promise) {
+    // Standard Schema allows async validate; Formbaker is sync-only for now.
+    // ponytail: sync-only ceiling — if a plugin returns async validate, this will
+    // return a misleading success. Upgrade path: make validate() async or throw.
+    throw new Error("Async validation plugins are not supported yet");
+  }
+  if (result.issues) {
+    return {
+      success: false,
+      data: result.issues.map((i) => i.message).join("\n"),
+      schema,
+    };
+  }
+  return { success: true, data: result.value as T, schema };
 };
 
 const clearForm = <T extends Formbaker>(form: T): T => {
@@ -170,19 +193,49 @@ const clearForm = <T extends Formbaker>(form: T): T => {
   return form;
 };
 
-const getSchema = <T extends Formbaker>(form: T, values: any) => {
-  return Object.values(form.fields)
-    .map(toFormSchema(form, values))
-    .reduce((a, c) => ({ ...a, ...c }), {});
+/**
+ * Build a combined object schema from all visible fields.
+ *
+ * Skips optional fields whose current value is `undefined` — arktype's
+ * `exactOptionalPropertyTypes` config requires keys to be present even when
+ * the type allows `undefined`, so we omit them entirely to match the old behavior.
+ *
+ * ponytail: merge ceiling — the top-level object schema is always composed via
+ * arktype's `type({...})`. Per-field schemas are produced by the plugin.
+ * Upgrade path: if a non-arktype plugin needs a different merge strategy,
+ * the merge function should become a second export from the plugin.
+ */
+const getSchema = <T extends Formbaker>(
+  form: T,
+  values: Record<string, unknown>,
+): StandardSchemaV1 => {
+  const merged: Record<string, unknown> = {};
+  for (const id in form.fields) {
+    const field = form.fields[id]!;
+    if (!shouldInclude(form, field, values)) continue;
+    // Skip optional fields with no current value to avoid arktype's
+    // exactOptionalPropertyTypes requiring the key to be present.
+    const isOptional = !field.validation?.required;
+    if (isOptional && values[id] === undefined) continue;
+    merged[id] = form.plugin(field, values);
+  }
+  if (Object.keys(merged).length === 0) {
+    return type({}) as unknown as StandardSchemaV1;
+  }
+  return type(merged) as unknown as StandardSchemaV1;
 };
 
 const formbakerResolver =
   (formbaker: Formbaker) =>
   (...args: any[]) => {
     const values = args[0];
-    console.debug(values);
-    const schema = type(getSchema(formbaker, values));
-    return arktypeResolver(schema as any)(...(args as [any, any, any]));
+    const schema = getSchema(
+      formbaker,
+      values as Record<string, unknown>,
+    );
+    return standardSchemaResolver(schema as any)(
+      ...(args as [any, any, any]),
+    );
   };
 
 const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
@@ -266,11 +319,11 @@ const layoutedGraph = (f: Formbaker, rankdir = "TB") => {
   const graph = new dagre.graphlib.Graph();
   graph.setGraph({
     rankdir,
-    nodesep: 150, // Horizontal spacing between nodes (default is 50)
-    ranksep: 200, // Vertical spacing between nodes (default is 50)
-    edgesep: 50, // Spacing between edges
-    marginx: 50, // Margin on the x-axis
-    marginy: 50, // Margin on the y-axis
+    nodesep: 150,
+    ranksep: 200,
+    edgesep: 50,
+    marginx: 50,
+    marginy: 50,
   });
   graph.setDefaultEdgeLabel(() => ({}));
   nodes.forEach((node) => {
@@ -304,20 +357,16 @@ const moveNode = <T extends Formbaker>(
   invariant(target, "no such node");
   invariant(nodeId !== targetNodeId, "Cannot move a node to itself");
 
-  // Build sorted list of all items (nodes + sections)
   const allIds = getSortedNodes(form);
   const activeIdx = allIds.findIndex((n) => n.id === nodeId);
   const overIdx = allIds.findIndex((n) => n.id === targetNodeId);
   invariant(activeIdx !== -1, "Active node not found in sorted list");
   invariant(overIdx !== -1, "Target node not found in sorted list");
 
-  // Remove active from its position, insert after over
   const active = allIds.splice(activeIdx, 1)[0]!;
-  // If we removed an item before overIdx, adjust the index
   const insertAfterIdx = activeIdx < overIdx ? overIdx - 1 : overIdx;
   allIds.splice(insertAfterIdx + 1, 0, active);
 
-  // Reindex order values: 1-based sequential
   allIds.forEach((item, idx) => {
     const entry = form.fields[item.id] ?? form.sections[item.id];
     if (entry) {

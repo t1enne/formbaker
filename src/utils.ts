@@ -1,3 +1,5 @@
+import { type } from "arktype";
+import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   Formbaker,
   FormbakerDependency,
@@ -6,8 +8,6 @@ import {
   TranslationDict,
   PlainObject,
 } from "./types";
-import { type } from "arktype";
-import { isNumber } from "../utils";
 
 /**
  * This works assuming that relationships between fields are within a section
@@ -16,11 +16,14 @@ import { isNumber } from "../utils";
  * in another section.
  */
 
-// checks if node's condition is true
+/**
+ * Checks if a node should be included based on its backward dependencies.
+ * Dependency conditions are arktype schema strings and are evaluated directly.
+ */
 export const shouldInclude = (
   form: Formbaker,
   node: FormbakerField | FormbakerSection,
-  value: any,
+  value: Record<string, unknown> | undefined,
 ) => {
   if (!node) {
     return false;
@@ -34,92 +37,11 @@ export const shouldInclude = (
   }
   // WARN: evaluate whether OR or AND should be used here
   return deps.some((d) => {
-    const r = type(d.condition)(value[d.source]);
+    const r = type(d.condition as any)(value[d.source]);
     const hasError = r instanceof type.errors;
     return !hasError;
   });
 };
-
-const getPrimitiveSchema = (field: FormbakerField, _value: any) => {
-  const { validation } = field;
-  const isOptional = !validation?.required;
-  let schema = isOptional ? "undefined | null | " : "";
-  const min = validation?.min;
-  const max = validation?.max;
-  if (field.type === "text") {
-    let constraints = isOptional ? "string" : "string > 0";
-    if (isNumber(min) && min > 0) {
-      constraints += ` & string >= ${min}`;
-    }
-    if (isNumber(max)) {
-      constraints += ` & string <= ${max}`;
-    }
-    return schema + constraints;
-  }
-  if (field.type === "number") {
-    let constraints = "";
-    if (min !== undefined) {
-      constraints += `number >= ${min}`;
-    }
-    if (max !== undefined) {
-      constraints += constraints ? ` & number <= ${max}` : `number <= ${max}`;
-    }
-    const baseSchema = constraints || "number";
-    return schema + baseSchema;
-  }
-  if (field.type === "select") {
-    const opts = (field as FormbakerField<"select">).options;
-    return schema + opts.map((_, i) => `${i}`).join(" | ");
-  }
-  if (field.type === "checkbox") {
-    return schema + "boolean";
-  }
-
-  if (field.type === "radio") {
-    return schema + "boolean";
-  }
-
-  if (field.type === "textarea") {
-    let constraints = isOptional ? "string" : "string > 0";
-    if (min !== undefined) {
-      constraints += ` & string >= ${min}`;
-    }
-    if (max !== undefined) {
-      constraints += ` & string <= ${max}`;
-    }
-    return schema + constraints;
-  }
-
-  if (field.type === "file") {
-    return schema + "object";
-  }
-  return schema;
-};
-
-// const toSectionSchema = (values: any) => (field: FormbakerField, _: number) =>
-//   getFieldSchema(field, values);
-
-const toFormSchema =
-  (form: Formbaker, value: any, formbakerErrs: Record<string, any> = {}) =>
-  (field: FormbakerField, _: number) => {
-    const willInclude = shouldInclude(form, field, value);
-    if (!willInclude) {
-      return {};
-    }
-    const isOptional = !field.validation?.required;
-    if (isOptional && isUndefined(value[field.id])) {
-      return {};
-    }
-    const ps = getPrimitiveSchema(field, value) as any;
-    return {
-      [field.id]: type(ps).configure({
-        message: (ctx) => {
-          const md = formbakerErrs[ctx.code] ?? formbakerErrs.predicate;
-          return String(md?.id);
-        },
-      }),
-    };
-  };
 
 const getTranslatedText = (
   text: Partial<TranslationDict> | undefined,
@@ -275,7 +197,6 @@ export function flow(...funcs: Array<(...args: any[]) => unknown>) {
 }
 
 export {
-  toFormSchema,
   getTranslatedText,
   isEqualDepencency,
   getNodeAtOrder,
