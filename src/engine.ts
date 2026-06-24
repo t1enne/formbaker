@@ -9,8 +9,7 @@ import {
   PositionedSection,
   PositionedField,
 } from "./types";
-import { isEqualDepencency, toFormSchema } from "./utils";
-import { invariant, merge, omit, sortBy } from "es-toolkit";
+import { isEqualDepencency, toFormSchema, invariant, merge, omit, sortBy } from "./utils";
 import { arktypeResolver } from "@hookform/resolvers/arktype";
 import dagre from "@dagrejs/dagre";
 

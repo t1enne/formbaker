@@ -1,20 +1,32 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "bundler",
-    "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "outDir": "dist",
-    "rootDir": ".",
-    "paths": {
-      "@/*": ["./*"],
-      "@/libs/formbaker/*": ["./src/*"],
-      "@/libs/formbaker": ["./src/engine.ts"]
-    }
-  },
-  "include": ["src/**/*.ts", "index.ts"],
-  "exclude": ["node_modules", "dist"]
+	"compilerOptions": {
+		"target": "es2019",
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"outDir": "dist",
+		"rootDir": ".",
+		"paths": {
+			"@/*": [
+				"./*"
+			],
+			"@/libs/formbaker/*": [
+				"./src/*"
+			],
+			"@/libs/formbaker": [
+				"./src/engine.ts"
+			]
+		}
+	},
+	"include": [
+		"src/**/*.ts",
+		"index.ts"
+	],
+	"exclude": [
+		"node_modules",
+		"dist"
+	]
 }
