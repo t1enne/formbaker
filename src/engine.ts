@@ -1,6 +1,5 @@
 import { type } from "arktype";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import dagre from "@dagrejs/dagre";
 import {
   Formbaker,
   FormResult,
@@ -10,7 +9,6 @@ import {
   PositionedNode,
   PositionedSection,
   PositionedField,
-  FormbakerField,
 } from "./types";
 import { arktypePlugin } from "./plugins/arktype";
 import {
@@ -22,9 +20,6 @@ import {
   shouldInclude,
 } from "./utils";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
-
-export const NODE_WIDTH = 250;
-export const NODE_HEIGHT = 100;
 
 const create = <S extends PlainObject, T extends Formbaker<S>>(
   params: Partial<T> = {},
@@ -229,13 +224,8 @@ const formbakerResolver =
   (formbaker: Formbaker) =>
   (...args: any[]) => {
     const values = args[0];
-    const schema = getSchema(
-      formbaker,
-      values as Record<string, unknown>,
-    );
-    return standardSchemaResolver(schema as any)(
-      ...(args as [any, any, any]),
-    );
+    const schema = getSchema(formbaker, values as Record<string, unknown>);
+    return standardSchemaResolver(schema as any)(...(args as [any, any, any]));
   };
 
 const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
@@ -313,39 +303,6 @@ const getOrderingMap = <T extends Formbaker>(form: T) => {
   return ordermap;
 };
 
-const layoutedGraph = (f: Formbaker, rankdir = "TB") => {
-  const nodes = Object.values(f.fields);
-  const edges = Object.values(f.dependencies.forward).flat();
-  const graph = new dagre.graphlib.Graph();
-  graph.setGraph({
-    rankdir,
-    nodesep: 150,
-    ranksep: 200,
-    edgesep: 50,
-    marginx: 50,
-    marginy: 50,
-  });
-  graph.setDefaultEdgeLabel(() => ({}));
-  nodes.forEach((node) => {
-    graph.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
-  });
-
-  edges.forEach((edge) => {
-    graph.setEdge(edge.source, edge.target);
-  });
-  dagre.layout(graph);
-  const positionedNodes = nodes.map((node) => {
-    const nodeWithPosition = graph.node(node.id);
-    const position = {
-      x: nodeWithPosition.x - NODE_WIDTH / 2,
-      y: nodeWithPosition.y - NODE_HEIGHT / 2,
-    };
-    return { ...node, position };
-  });
-
-  return { nodes: positionedNodes, edges };
-};
-
 const moveNode = <T extends Formbaker>(
   form: T,
   nodeId: string,
@@ -391,6 +348,5 @@ export {
   formbakerResolver,
   getSortedNodes,
   getOrderingMap,
-  layoutedGraph,
   moveNode,
 };

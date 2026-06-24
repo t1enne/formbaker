@@ -12,7 +12,6 @@ export {
   formbakerResolver,
   getSortedNodes,
   getOrderingMap,
-  layoutedGraph,
   moveNode,
 } from "./src/engine";
 
