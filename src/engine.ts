@@ -1,10 +1,10 @@
 import { type } from "arktype";
 import {
-  Formey,
+  Formbaker,
   FormResult,
-  FormeyDependency,
+  FormbakerDependency,
   PlainObject,
-  FormeySection,
+  FormbakerSection,
   PositionedNode,
   PositionedSection,
   PositionedField,
@@ -13,12 +13,12 @@ import { isEqualDepencency, toFormSchema } from "./utils";
 import { invariant, merge, omit, sortBy } from "es-toolkit";
 import { arktypeResolver } from "@hookform/resolvers/arktype";
 import dagre from "@dagrejs/dagre";
-import type { formeyErrors } from "@/consts/formey-errors";
+import type { formbakerErrors } from "@/consts/formbaker-errors";
 
 export const NODE_WIDTH = 250;
 export const NODE_HEIGHT = 100;
 
-const create = <S extends PlainObject, T extends Formey<S>>(
+const create = <S extends PlainObject, T extends Formbaker<S>>(
   params: Partial<T> = {},
 ): T => {
   return {
@@ -33,7 +33,7 @@ const create = <S extends PlainObject, T extends Formey<S>>(
   } as T;
 };
 
-const addNode = <T extends Formey>(
+const addNode = <T extends Formbaker>(
   form: T,
   field: Partial<T["fields"][string]> & Pick<T["fields"][string], "id">,
 ): T => {
@@ -45,7 +45,7 @@ const addNode = <T extends Formey>(
   return form;
 };
 
-const addDependency = <T extends Formey>(form: T, dep: FormeyDependency): T => {
+const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): T => {
   const { target, source } = dep;
   const isSection = (id: string) => Object.keys(form.sections).includes(id);
 
@@ -59,12 +59,12 @@ const addDependency = <T extends Formey>(form: T, dep: FormeyDependency): T => {
 
   // Add to forward map
   const forwardMap =
-    form.dependencies.forward[source] ?? ([] as FormeyDependency[]);
+    form.dependencies.forward[source] ?? ([] as FormbakerDependency[]);
   forwardMap.push(dep);
 
   // Add to backward map
   const backwardMap =
-    form.dependencies.backward[target] ?? ([] as FormeyDependency[]);
+    form.dependencies.backward[target] ?? ([] as FormbakerDependency[]);
   backwardMap.push(dep);
 
   form.dependencies.forward[source] = forwardMap;
@@ -74,19 +74,19 @@ const addDependency = <T extends Formey>(form: T, dep: FormeyDependency): T => {
 };
 
 const removeDependency = <
-  T extends Pick<Formey, "fields" | "dependencies" | "sections">,
+  T extends Pick<Formbaker, "fields" | "dependencies" | "sections">,
 >(
   form: T,
-  dependency: FormeyDependency,
+  dependency: FormbakerDependency,
 ) => {
   const { target, source } = dependency;
   // Add to forward map
   const forwardMap =
-    form.dependencies.forward[source] ?? ([] as FormeyDependency[]);
+    form.dependencies.forward[source] ?? ([] as FormbakerDependency[]);
 
   // Add to backward map
   const backwardMap =
-    form.dependencies.backward[target] ?? ([] as FormeyDependency[]);
+    form.dependencies.backward[target] ?? ([] as FormbakerDependency[]);
   // find the idx to remove
   const fidx = forwardMap.findIndex((d) => isEqualDepencency(dependency, d));
   const bidx = backwardMap.findIndex((d) => isEqualDepencency(dependency, d));
@@ -97,7 +97,7 @@ const removeDependency = <
   return form;
 };
 
-const removeNode = <T extends Formey>(
+const removeNode = <T extends Formbaker>(
   form: T,
   nodeId: string,
 ): [T, boolean] => {
@@ -114,9 +114,9 @@ const removeNode = <T extends Formey>(
   return [form, true];
 };
 
-const addSection = <T extends Formey>(
+const addSection = <T extends Formbaker>(
   form: T,
-  section: Partial<FormeySection> & Pick<FormeySection, "id">,
+  section: Partial<FormbakerSection> & Pick<FormbakerSection, "id">,
 ) => {
   invariant(section.id[0] == "#", "Section id must start with #");
   invariant(!form.sections[section.id], "Duplicate section id");
@@ -132,7 +132,7 @@ const addSection = <T extends Formey>(
   return form;
 };
 
-const removeSection = <T extends Formey>(form: T, sectionId: string) => {
+const removeSection = <T extends Formbaker>(form: T, sectionId: string) => {
   const section = form.sections[sectionId];
   invariant(section.id, `No section ${sectionId}`);
   form.sections = omit(form.sections, [sectionId]);
@@ -140,8 +140,8 @@ const removeSection = <T extends Formey>(form: T, sectionId: string) => {
 };
 
 const isCyclical = (
-  dependencies: Formey["dependencies"],
-  { target, source }: FormeyDependency,
+  dependencies: Formbaker["dependencies"],
+  { target, source }: FormbakerDependency,
   visited = new Set<string>(),
 ): boolean => {
   if (target === source) {
@@ -154,7 +154,7 @@ const isCyclical = (
   );
 };
 
-const validate = <T>(form: Formey, values: T): FormResult<T> => {
+const validate = <T>(form: Formbaker, values: T): FormResult<T> => {
   const schema = getSchema(form, values);
   const validatorfn = type(schema);
   const out = validatorfn(values) as T | type.errors;
@@ -163,32 +163,32 @@ const validate = <T>(form: Formey, values: T): FormResult<T> => {
     : { success: true, data: out, schema };
 };
 
-const clearForm = <T extends Formey>(form: T): T => {
+const clearForm = <T extends Formbaker>(form: T): T => {
   form.fields = {};
   form.dependencies = { forward: {}, backward: {} };
   return form;
 };
 
-const getSchema = <T extends Formey>(
+const getSchema = <T extends Formbaker>(
   form: T,
   values: any,
-  formeyErrs?: typeof formeyErrors,
+  formbakerErrs?: typeof formbakerErrors,
 ) => {
   return Object.values(form.fields)
-    .map(toFormSchema(form, values, formeyErrs))
+    .map(toFormSchema(form, values, formbakerErrs))
     .reduce((a, c) => merge(a, c), {});
 };
 
-const formeyResolver =
-  (formey: Formey) =>
+const formbakerResolver =
+  (formbaker: Formbaker) =>
   (...args: any[]) => {
     const values = args[0];
     console.debug(values);
-    const schema = getSchema(formey, values);
+    const schema = getSchema(formbaker, values);
     return arktypeResolver(schema)(...(args as [any, any, any]));
   };
 
-const getSortedNodes = <S extends PlainObject, T extends Formey<S>>(
+const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
   form: T,
 ): Array<PositionedNode<S>> => {
   const unsorted: Array<{ id: string; type: "_section" | "_node" }> = [];
@@ -233,7 +233,7 @@ const getSortedNodes = <S extends PlainObject, T extends Formey<S>>(
   return sorted.map(getPositionedNode);
 };
 
-const getOrderingMap = <T extends Formey>(form: T) => {
+const getOrderingMap = <T extends Formbaker>(form: T) => {
   const sorted = getSortedNodes(form);
   const ordermap = new Map<string, string>();
 
@@ -260,7 +260,7 @@ const getOrderingMap = <T extends Formey>(form: T) => {
   return ordermap;
 };
 
-const layoutedGraph = (f: Formey, rankdir = "TB") => {
+const layoutedGraph = (f: Formbaker, rankdir = "TB") => {
   const nodes = Object.values(f.fields);
   const edges = Object.values(f.dependencies.forward).flat();
   const graph = new dagre.graphlib.Graph();
@@ -293,7 +293,7 @@ const layoutedGraph = (f: Formey, rankdir = "TB") => {
   return { nodes: positionedNodes, edges };
 };
 
-const moveNode = <T extends Formey>(
+const moveNode = <T extends Formbaker>(
   form: T,
   nodeId: string,
   targetNodeId: string,
@@ -339,7 +339,7 @@ export {
   validate,
   clearForm,
   getSchema,
-  formeyResolver,
+  formbakerResolver,
   getSortedNodes,
   getOrderingMap,
   layoutedGraph,

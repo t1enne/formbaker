@@ -11,8 +11,8 @@
     "rootDir": ".",
     "paths": {
       "@/*": ["./*"],
-      "@/libs/formey/*": ["./src/*"],
-      "@/libs/formey": ["./src/engine.ts"]
+      "@/libs/formbaker/*": ["./src/*"],
+      "@/libs/formbaker": ["./src/engine.ts"]
     }
   },
   "include": ["src/**/*.ts", "index.ts"],

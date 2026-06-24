@@ -22,7 +22,7 @@ export type BaseValidation = {
   message?: string;
 };
 
-export type FormeyTypeMap = {
+export type FormbakerTypeMap = {
   text: { defaultValue?: unknown };
   number: { defaultValue?: unknown };
   checkbox: { defaultValue?: unknown };
@@ -35,28 +35,28 @@ export type FormeyTypeMap = {
   file: {};
 };
 
-export type FormeyValidation = {
+export type FormbakerValidation = {
   [K in keyof ValidationRuleMap]?: BaseValidation & ValidationRuleMap[K];
 };
 
-export type FormeyDependency = {
+export type FormbakerDependency = {
   condition: any;
   source: string;
   target: string;
 };
 
-export interface Formey<T extends PlainObject = {}> {
+export interface Formbaker<T extends PlainObject = {}> {
   id: string;
   label: Partial<TranslationDict>;
-  fields: Record<string, FormeyField & T>;
-  sections: Record<string, FormeySection>;
+  fields: Record<string, FormbakerField & T>;
+  sections: Record<string, FormbakerSection>;
   dependencies: {
-    forward: { [x: string]: FormeyDependency[] };
-    backward: { [x: string]: FormeyDependency[] };
+    forward: { [x: string]: FormbakerDependency[] };
+    backward: { [x: string]: FormbakerDependency[] };
   };
 }
 
-export interface FormeySection {
+export interface FormbakerSection {
   id: string;
   label?: Partial<TranslationDict>;
   description?: Partial<TranslationDict>;
@@ -67,16 +67,16 @@ export interface BaseField {
   id: string;
   label?: Partial<TranslationDict>;
   description?: Partial<TranslationDict>;
-  type: keyof FormeyTypeMap;
-  validation?: FormeyValidation;
+  type: keyof FormbakerTypeMap;
+  validation?: FormbakerValidation;
   order?: number;
   // variable id
   $$?: string;
 }
 
-export type FormeyField<T extends keyof FormeyTypeMap = "text"> = {
-  [K in keyof FormeyTypeMap]: FormeyTypeMap[T] & BaseField;
-}[keyof FormeyTypeMap];
+export type FormbakerField<T extends keyof FormbakerTypeMap = "text"> = {
+  [K in keyof FormbakerTypeMap]: FormbakerTypeMap[T] & BaseField;
+}[keyof FormbakerTypeMap];
 
 export type FormResult<T> = {
   success: boolean;
@@ -87,7 +87,7 @@ export type FormResult<T> = {
 export interface PositionedSection {
   type: "_section";
   id: string;
-  section?: FormeySection;
+  section?: FormbakerSection;
   position: { x: number; y: number };
 }
 
@@ -95,7 +95,7 @@ export interface PositionedField<T extends PlainObject> {
   type: "_node";
   id: string;
   position: { x: number; y: number };
-  node?: FormeyField & T;
+  node?: FormbakerField & T;
 }
 
 export type PositionedNode<T extends PlainObject = {}> =

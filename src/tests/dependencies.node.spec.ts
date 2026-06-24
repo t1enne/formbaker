@@ -5,11 +5,11 @@ import {
   addDependency,
   validate,
   removeDependency,
-} from "@/libs/formey/engine";
+} from "@/libs/formbaker/engine";
 import { flow } from "es-toolkit";
 import { describe, it, expect } from "vitest";
 
-describe("formey dependencies", () => {
+describe("formbaker dependencies", () => {
   it("should handle optional subsections", () => {
     const createForm = flow(
       () => create(),

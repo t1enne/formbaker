@@ -1,9 +1,9 @@
 import { isUndefined } from "es-toolkit";
 import {
-  Formey,
-  FormeyDependency,
-  FormeyField,
-  FormeySection,
+  Formbaker,
+  FormbakerDependency,
+  FormbakerField,
+  FormbakerSection,
   TranslationDict,
 } from "./types";
 import { type } from "arktype";
@@ -18,8 +18,8 @@ import { isNumber } from "../utils";
 
 // checks if node's condition is true
 export const shouldInclude = (
-  form: Formey,
-  node: FormeyField | FormeySection,
+  form: Formbaker,
+  node: FormbakerField | FormbakerSection,
   value: any,
 ) => {
   if (!node) {
@@ -40,7 +40,7 @@ export const shouldInclude = (
   });
 };
 
-const getPrimitiveSchema = (field: FormeyField, _value: any) => {
+const getPrimitiveSchema = (field: FormbakerField, _value: any) => {
   const { validation } = field;
   const isOptional = !validation?.required;
   let schema = isOptional ? "undefined | null | " : "";
@@ -68,7 +68,7 @@ const getPrimitiveSchema = (field: FormeyField, _value: any) => {
     return schema + baseSchema;
   }
   if (field.type === "select") {
-    const opts = (field as FormeyField<"select">).options;
+    const opts = (field as FormbakerField<"select">).options;
     return schema + opts.map((_, i) => `${i}`).join(" | ");
   }
   if (field.type === "checkbox") {
@@ -96,12 +96,12 @@ const getPrimitiveSchema = (field: FormeyField, _value: any) => {
   return schema;
 };
 
-// const toSectionSchema = (values: any) => (field: FormeyField, _: number) =>
+// const toSectionSchema = (values: any) => (field: FormbakerField, _: number) =>
 //   getFieldSchema(field, values);
 
 const toFormSchema =
-  (form: Formey, value: any, formeyErrs: Record<string, any> = {}) =>
-  (field: FormeyField, _: number) => {
+  (form: Formbaker, value: any, formbakerErrs: Record<string, any> = {}) =>
+  (field: FormbakerField, _: number) => {
     const willInclude = shouldInclude(form, field, value);
     if (!willInclude) {
       return {};
@@ -114,7 +114,7 @@ const toFormSchema =
     return {
       [field.id]: type(ps).configure({
         message: (ctx) => {
-          const md = formeyErrs[ctx.code] ?? formeyErrs.predicate;
+          const md = formbakerErrs[ctx.code] ?? formbakerErrs.predicate;
           return String(md?.id);
         },
       }),
@@ -137,7 +137,7 @@ const getTranslatedText = (
   return text[locale] || text.it || "";
 };
 
-const isEqualDepencency = (a: FormeyDependency, b: FormeyDependency) => {
+const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
   if (a.source !== b.source) {
     return false;
   }
@@ -150,7 +150,7 @@ const isEqualDepencency = (a: FormeyDependency, b: FormeyDependency) => {
   return true;
 };
 
-const getNodeAtOrder = <T extends Formey>(form: T, order = 0) => {
+const getNodeAtOrder = <T extends Formbaker>(form: T, order = 0) => {
   const field = Object.values(form.fields).find((f) => f.order === order);
   return field ?? Object.values(form.sections).find((s) => s.order === order);
 };

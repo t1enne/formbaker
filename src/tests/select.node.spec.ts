@@ -1,4 +1,4 @@
-import { create, validate } from "@/libs/formey/engine";
+import { create, validate } from "@/libs/formbaker/engine";
 import { type } from "arktype";
 import { describe, it, expect } from "vitest";
 
@@ -12,12 +12,12 @@ const field = {
   ],
 };
 
-describe("formey selects", () => {
+describe("formbaker selects", () => {
   let fb = create({ fields: { b: field } });
 
   it("should allow nullable state", () => {
-    let formeyValidateResult = validate(fb, { b: null });
-    expect(formeyValidateResult).not.toBeInstanceOf(type.errors);
+    let formbakerValidateResult = validate(fb, { b: null });
+    expect(formbakerValidateResult).not.toBeInstanceOf(type.errors);
   });
 
   it("should disallow unspecified values", () => {

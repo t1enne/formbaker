@@ -1,7 +1,7 @@
-import { create, addNode, validate } from "@/libs/formey/engine";
+import { create, addNode, validate } from "@/libs/formbaker/engine";
 import { describe, expect, it } from "vitest";
 
-describe("formey", () => {
+describe("formbaker", () => {
   it("should throw when adding nodes with duplicate ids", () => {
     const form = create();
     addNode(form, { id: "personal", type: "text" });
@@ -14,8 +14,8 @@ describe("formey", () => {
   it("should work with nullable fields", () => {
     const form = create();
     addNode(form, { id: "b", type: "text", defaultValue: null });
-    let formeyValidateResult = validate(form, { b: "b" });
-    expect(formeyValidateResult.success).toBe(true);
+    let formbakerValidateResult = validate(form, { b: "b" });
+    expect(formbakerValidateResult.success).toBe(true);
   });
 
   it("should handle validations", () => {
