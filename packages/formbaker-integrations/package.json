@@ -4,9 +4,25 @@
   "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder, Nest class-validator)",
   "type": "module",
   "exports": {
-    "./react-hook-form": "./src/react-hook-form.ts",
-    "./angular": "./src/angular.ts",
-    "./nest": "./src/nest.ts"
+    "./react-hook-form": {
+      "types": "./dist/react-hook-form.d.ts",
+      "default": "./dist/react-hook-form.js"
+    },
+    "./angular": {
+      "types": "./dist/angular.d.ts",
+      "default": "./dist/angular.js"
+    },
+    "./nest": {
+      "types": "./dist/nest.d.ts",
+      "default": "./dist/nest.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "@angular/forms": "^22.0.3",

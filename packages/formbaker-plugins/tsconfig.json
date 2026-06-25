@@ -1,4 +1,9 @@
 {
   "extends": "../../tsconfig.json",
-  "include": ["*.ts", "tests/**/*.ts"]
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "."
+  },
+  "include": ["*.ts"],
+  "exclude": ["tests", "vitest.config.ts"]
 }

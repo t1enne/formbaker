@@ -15,6 +15,11 @@ import { isEqualDepencency, invariant, omit, sortBy, shouldInclude } from "./uti
 const pluginRegistry = new Map<string, FormbakerPlugin>();
 
 export const registerPlugin = (name: string, plugin: FormbakerPlugin): void => {
+  invariant(typeof name === "string" && name.length > 0, "Plugin name must be a non-empty string");
+  invariant(typeof plugin === "object" && plugin !== null, "Plugin must be an object");
+  invariant(typeof plugin.field === "function", 'Plugin must implement field(field, values)');
+  invariant(typeof plugin.mergeFields === "function", 'Plugin must implement mergeFields(fields)');
+  invariant(typeof plugin.evaluateCondition === "function", 'Plugin must implement evaluateCondition(condition, value)');
   pluginRegistry.set(name, plugin);
 };
 

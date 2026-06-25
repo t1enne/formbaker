@@ -4,8 +4,21 @@
   "description": "Validation plugins for Formbaker (arktype, zod)",
   "type": "module",
   "exports": {
-    "./arktype": "./arktype.ts",
-    "./zod": "./zod.ts"
+    "./arktype": {
+      "types": "./dist/arktype.d.ts",
+      "default": "./dist/arktype.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "default": "./dist/zod.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
   },
   "devDependencies": {
     "arktype": "^2.2.1",

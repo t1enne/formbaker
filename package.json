@@ -6,6 +6,7 @@
     "packages/formbaker-integrations"
   ],
   "scripts": {
+    "build": "npm run build --workspace=packages/formbaker && npm run build --workspace=packages/formbaker-plugins && npm run build --workspace=packages/formbaker-integrations",
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit",

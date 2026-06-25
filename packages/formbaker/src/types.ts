@@ -6,7 +6,6 @@ export type ValidationRuleMap = {
   required: { message: string } | boolean;
   min: number;
   max: number;
-  absolute: string | number | boolean;
 };
 
 export type BaseValidation = {
@@ -47,7 +46,7 @@ export type FormbakerDependency = {
  * - `evaluateCondition`: evaluate a dependency condition against a raw value.
  *
  * Plugins decide how to translate {@link FormbakerValidation} rules (required, min,
- * max, absolute) into their library's schema DSL.
+ * max) into their library's schema DSL.
  */
 export type FormbakerPlugin = {
   field: (field: FormbakerField, values: Record<string, unknown>) => StandardSchemaV1;
