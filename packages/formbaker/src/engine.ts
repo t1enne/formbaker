@@ -59,7 +59,11 @@ const addNode = <T extends Formbaker>(
     ...form,
     fields: {
       ...form.fields,
-      [field.id]: { ...field, order: l, type: field.type ?? "text" } as T["fields"][string],
+      [field.id]: {
+        ...field,
+        order: l,
+        type: field.type ?? "text",
+      } as T["fields"][string],
     },
   };
 };
@@ -79,14 +83,8 @@ const addDependency = <T extends Formbaker>(
     "Cannot introduce cyclical dependency",
   );
 
-  const forwardList = [
-    ...(form.dependencies.forward[source] ?? []),
-    dep,
-  ];
-  const backwardList = [
-    ...(form.dependencies.backward[target] ?? []),
-    dep,
-  ];
+  const forwardList = [...(form.dependencies.forward[source] ?? []), dep];
+  const backwardList = [...(form.dependencies.backward[target] ?? []), dep];
 
   return {
     ...form,
@@ -382,7 +380,10 @@ const moveNode = <T extends Formbaker>(
     } else if (item.id in form.sections) {
       const entry = form.sections[item.id]!;
       if (entry.order !== newOrder) {
-        newSections = { ...newSections, [item.id]: { ...entry, order: newOrder } };
+        newSections = {
+          ...newSections,
+          [item.id]: { ...entry, order: newOrder },
+        };
       }
     }
   });

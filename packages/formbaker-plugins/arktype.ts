@@ -7,7 +7,7 @@
  */
 import { type } from "arktype";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { FormbakerField, FormbakerPlugin } from "../types";
+import type { FormbakerField, FormbakerPlugin } from "formbaker";
 
 const isNumber = (v: unknown): v is number =>
   typeof v === "number" && !Number.isNaN(v);

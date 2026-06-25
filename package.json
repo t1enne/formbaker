@@ -1,20 +1,13 @@
 {
-  "name": "formbaker",
-  "version": "0.1.0",
-  "description": "Formbaker — dynamic form engine with dependency-based visibility and validation",
-  "type": "module",
-  "main": "src/engine.ts",
-  "types": "src/engine.ts",
+  "private": true,
+  "workspaces": [
+    "packages/formbaker",
+    "packages/formbaker-plugins"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^5.4.0",
-    "@standard-schema/spec": "^1.1.0",
-    "arktype": "^2.2.1",
-    "zod": "^4.4.3"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

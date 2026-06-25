@@ -1,0 +1,28 @@
+{
+  "name": "@formbaker/plugins",
+  "version": "0.1.0",
+  "description": "Validation plugins for Formbaker (arktype, zod)",
+  "type": "module",
+  "exports": {
+    "./arktype": "./arktype.ts",
+    "./zod": "./zod.ts"
+  },
+  "peerDependencies": {
+    "formbaker": "*",
+    "arktype": "^2.2.0",
+    "zod": "^4.4.0"
+  },
+  "peerDependenciesMeta": {
+    "arktype": {
+      "optional": true
+    },
+    "zod": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "formbaker": "*",
+    "arktype": "^2.2.1",
+    "zod": "^4.4.3"
+  }
+}

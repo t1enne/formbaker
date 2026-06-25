@@ -12,8 +12,8 @@ import {
   addDependency,
   validate,
   registerPlugin,
-} from "@/engine";
-import { arktypePlugin } from "@/plugins/arktype";
+} from "formbaker";
+import { arktypePlugin } from "@formbaker/plugins/arktype";
 
 describe("arktypePlugin", () => {
   beforeAll(() => {

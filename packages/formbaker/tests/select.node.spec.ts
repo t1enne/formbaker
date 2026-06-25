@@ -1,6 +1,5 @@
-import { create, validate } from "@/engine";
-import { registerPlugin } from "@/engine";
-import { arktypePlugin } from "@/plugins/arktype";
+import { create, validate, registerPlugin } from "formbaker";
+import { testPlugin } from "./testPlugin";
 import { describe, it, expect, beforeAll } from "vitest";
 
 const field = {
@@ -12,10 +11,10 @@ const field = {
 
 describe("formbaker selects", () => {
   beforeAll(() => {
-    registerPlugin("arktype", arktypePlugin);
+    registerPlugin("test", testPlugin);
   });
 
-  let fb = create({ pluginName: "arktype", fields: { b: field } });
+  let fb = create({ pluginName: "test", fields: { b: field } });
 
   it("should allow nullable state", () => {
     let formbakerValidateResult = validate(fb, { b: null });

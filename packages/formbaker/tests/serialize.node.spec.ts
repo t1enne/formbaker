@@ -6,14 +6,12 @@
  * references on the form object, which JSON.stringify silently dropped.
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import { create, validate, registerPlugin } from "@/engine";
-import { arktypePlugin } from "@/plugins/arktype";
-import { zodPlugin } from "@/plugins/zod";
+import { create, validate, registerPlugin } from "formbaker";
+import { testPlugin } from "./testPlugin";
 
 describe("serialization", () => {
   beforeAll(() => {
-    registerPlugin("arktype", arktypePlugin);
-    registerPlugin("zod", zodPlugin);
+    registerPlugin("test", testPlugin);
   });
   it("form should survive JSON stringify/parse round-trip", () => {
     const form = create({
@@ -21,13 +19,13 @@ describe("serialization", () => {
         name: { id: "name", type: "text", validation: { required: true } },
         age: { id: "age", type: "number", validation: { min: 0 } },
       },
-      pluginName: "zod",
+      pluginName: "test",
     });
 
     const json = JSON.stringify(form, null, 2);
     const restored = JSON.parse(json);
 
-    expect(restored.pluginName).toBe("zod");
+    expect(restored.pluginName).toBe("test");
     expect(restored.fields.name.type).toBe("text");
     expect(restored.fields.age.validation.min).toBe(0);
     expect(typeof restored.pluginName).toBe("string");
@@ -57,7 +55,7 @@ describe("serialization", () => {
           child: [{ source: "parent", target: "child", condition: "true" }],
         },
       },
-      pluginName: "arktype",
+      pluginName: "test",
     });
 
     const json = JSON.stringify(original);

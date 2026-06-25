@@ -5,8 +5,8 @@
  * min/max constraints, edge cases, and plugin-specific mergeFields/evaluateCondition.
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import { create, addNode, validate, registerPlugin, addDependency } from "@/engine";
-import { zodPlugin } from "@/plugins/zod";
+import { create, addNode, validate, registerPlugin, addDependency } from "formbaker";
+import { zodPlugin } from "@formbaker/plugins/zod";
 
 describe("zodPlugin", () => {
   beforeAll(() => {

@@ -1,28 +1,14 @@
 {
-	"compilerOptions": {
-		"target": "es2019",
-		"module": "esnext",
-		"moduleResolution": "bundler",
-		"strict": true,
-		"noUncheckedIndexedAccess": true,
-		"esModuleInterop": true,
-		"skipLibCheck": true,
-		"outDir": "dist",
-		"rootDir": ".",
-		"paths": {
-			"@/engine": ["./src/engine"],
-			"@/utils": ["./src/utils"],
-			"@/types": ["./src/types"],
-			"@/plugins/*": ["./src/plugins/*"]
-		}
-	},
-	"include": [
-		"src/**/*.ts",
-		"tests/**/*.ts",
-		"index.ts"
-	],
-	"exclude": [
-		"node_modules",
-		"dist"
-	]
+  "compilerOptions": {
+    "target": "es2019",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "declaration": true
+  },
+  "exclude": ["node_modules", "dist"]
 }

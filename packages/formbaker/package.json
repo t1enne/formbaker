@@ -1,0 +1,15 @@
+{
+  "name": "formbaker",
+  "version": "0.1.0",
+  "description": "Formbaker — dynamic form engine with dependency-based visibility and validation",
+  "type": "module",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.4.0",
+    "@standard-schema/spec": "^1.1.0"
+  }
+}
