@@ -21,7 +21,9 @@ describe("zodPlugin", () => {
   // --- text ---
   it("should validate required text", () => {
     const form = addNode(create({ pluginName: "zod" }), {
-      id: "name", type: "text", validation: { required: true },
+      id: "name",
+      type: "text",
+      validation: { required: true },
     });
 
     expect(validate(form, { name: "" }).success).toBe(false);
@@ -30,7 +32,8 @@ describe("zodPlugin", () => {
 
   it("should validate optional text (null/undefined OK)", () => {
     const form = addNode(create({ pluginName: "zod" }), {
-      id: "bio", type: "text",
+      id: "bio",
+      type: "text",
     });
 
     expect(validate(form, { bio: null }).success).toBe(true);
@@ -80,7 +83,8 @@ describe("zodPlugin", () => {
 
   it("should validate optional number", () => {
     const form = addNode(create({ pluginName: "zod" }), {
-      id: "opt", type: "number",
+      id: "opt",
+      type: "number",
     });
 
     expect(validate(form, { opt: null }).success).toBe(true);
@@ -130,7 +134,8 @@ describe("zodPlugin", () => {
 
   it("should validate optional checkbox", () => {
     const form = addNode(create({ pluginName: "zod" }), {
-      id: "newsletter", type: "checkbox",
+      id: "newsletter",
+      type: "checkbox",
     });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
@@ -187,7 +192,8 @@ describe("zodPlugin", () => {
 
   it("should validate optional file", () => {
     const form = addNode(create({ pluginName: "zod" }), {
-      id: "avatar", type: "file",
+      id: "avatar",
+      type: "file",
     });
 
     expect(validate(form, { avatar: null }).success).toBe(true);
@@ -261,7 +267,7 @@ describe("zodPlugin", () => {
 
     expect(validate(form, { parent: null }).success).toBe(true);
     expect(validate(form, { parent: false }).success).toBe(true);
-    expect(validate(form, { parent: true }).success).toBe(false);  // child required
+    expect(validate(form, { parent: true }).success).toBe(false); // child required
     expect(validate(form, { parent: true, child: "x" }).success).toBe(true);
   });
 
@@ -277,8 +283,8 @@ describe("zodPlugin", () => {
       { source: "parent", target: "child", condition: "string" },
     );
 
-    expect(validate(form, { parent: null }).success).toBe(true);   // no parent → child hidden
-    expect(validate(form, { parent: "x" }).success).toBe(false);   // child visible, required, missing
+    expect(validate(form, { parent: null }).success).toBe(true); // no parent → child hidden
+    expect(validate(form, { parent: "x" }).success).toBe(false); // child visible, required, missing
     expect(validate(form, { parent: "x", child: "y" }).success).toBe(true);
   });
 
@@ -294,8 +300,8 @@ describe("zodPlugin", () => {
       { source: "age", target: "note", condition: "number" },
     );
 
-    expect(validate(form, { age: null }).success).toBe(true);       // not a number → note hidden
-    expect(validate(form, { age: 25 }).success).toBe(false);        // note visible, required, missing
+    expect(validate(form, { age: null }).success).toBe(true); // not a number → note hidden
+    expect(validate(form, { age: 25 }).success).toBe(false); // note visible, required, missing
     expect(validate(form, { age: 25, note: "ok" }).success).toBe(true);
   });
 
@@ -311,8 +317,8 @@ describe("zodPlugin", () => {
       { source: "toggle", target: "extra", condition: "boolean" },
     );
 
-    expect(validate(form, { toggle: null }).success).toBe(true);     // not boolean → extra hidden
-    expect(validate(form, { toggle: true }).success).toBe(false);    // extra visible, required, missing
+    expect(validate(form, { toggle: null }).success).toBe(true); // not boolean → extra hidden
+    expect(validate(form, { toggle: true }).success).toBe(false); // extra visible, required, missing
     expect(validate(form, { toggle: false }).success).toBe(false);
     expect(validate(form, { toggle: true, extra: "yes" }).success).toBe(true);
   });

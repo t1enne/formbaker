@@ -11,19 +11,13 @@ import type { FormbakerField, FormbakerPlugin } from "formbaker";
 
 type StdResult = StandardSchemaV1.Result<unknown>;
 
-const makeSchema = (
-  validate: (v: unknown) => StdResult,
-): StandardSchemaV1 => ({
+const makeSchema = (validate: (v: unknown) => StdResult): StandardSchemaV1 => ({
   "~standard": { version: 1, vendor: "test", validate },
 });
 
-const isNum = (v: unknown): v is number =>
-  typeof v === "number" && !Number.isNaN(v);
+const isNum = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);
 
-const field = (
-  f: FormbakerField,
-  _values: Record<string, unknown>,
-): StandardSchemaV1 => {
+const field = (f: FormbakerField, _values: Record<string, unknown>): StandardSchemaV1 => {
   const req = !!f.validation?.required;
   const min = f.validation?.min;
   const max = f.validation?.max;
@@ -43,8 +37,7 @@ const field = (
   if (f.type === "checkbox" || f.type === "radio") {
     return makeSchema((v) => {
       if (!req && (v === null || v === undefined)) return { value: v };
-      if (typeof v !== "boolean")
-        return { issues: [{ message: `Expected boolean for ${f.id}` }] };
+      if (typeof v !== "boolean") return { issues: [{ message: `Expected boolean for ${f.id}` }] };
       return { value: v };
     });
   }
@@ -53,12 +46,9 @@ const field = (
   if (f.type === "number") {
     return makeSchema((v) => {
       if (!req && (v === null || v === undefined)) return { value: v };
-      if (!isNum(v))
-        return { issues: [{ message: `Expected number for ${f.id}` }] };
-      if (isNum(min) && v < min)
-        return { issues: [{ message: `${f.id} below minimum` }] };
-      if (isNum(max) && v > max)
-        return { issues: [{ message: `${f.id} above maximum` }] };
+      if (!isNum(v)) return { issues: [{ message: `Expected number for ${f.id}` }] };
+      if (isNum(min) && v < min) return { issues: [{ message: `${f.id} below minimum` }] };
+      if (isNum(max) && v > max) return { issues: [{ message: `${f.id} above maximum` }] };
       return { value: v };
     });
   }
@@ -66,24 +56,17 @@ const field = (
   // text / textarea / file / anything else → string
   return makeSchema((v) => {
     if (!req && (v === null || v === undefined)) return { value: v };
-    if (typeof v !== "string")
-      return { issues: [{ message: `Expected string for ${f.id}` }] };
-    if (req && v === "")
-      return { issues: [{ message: `${f.id} is required` }] };
-    if (isNum(min) && v.length < min)
-      return { issues: [{ message: `${f.id} too short` }] };
-    if (isNum(max) && v.length > max)
-      return { issues: [{ message: `${f.id} too long` }] };
+    if (typeof v !== "string") return { issues: [{ message: `Expected string for ${f.id}` }] };
+    if (req && v === "") return { issues: [{ message: `${f.id} is required` }] };
+    if (isNum(min) && v.length < min) return { issues: [{ message: `${f.id} too short` }] };
+    if (isNum(max) && v.length > max) return { issues: [{ message: `${f.id} too long` }] };
     return { value: v };
   });
 };
 
-const mergeFields = (
-  fields: Record<string, StandardSchemaV1>,
-): StandardSchemaV1 =>
+const mergeFields = (fields: Record<string, StandardSchemaV1>): StandardSchemaV1 =>
   makeSchema((v) => {
-    if (v === null || typeof v !== "object")
-      return { issues: [{ message: "Expected object" }] };
+    if (v === null || typeof v !== "object") return { issues: [{ message: "Expected object" }] };
     const obj = v as Record<string, unknown>;
     const issues: StandardSchemaV1.Issue[] = [];
     const out: Record<string, unknown> = {};

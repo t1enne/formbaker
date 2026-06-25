@@ -1,9 +1,4 @@
-import {
-  Formbaker,
-  FormbakerDependency,
-  FormbakerField,
-  FormbakerSection,
-} from "./types";
+import { Formbaker, FormbakerDependency, FormbakerField, FormbakerSection } from "./types";
 
 /** Signature for a plugin's dependency evaluation. */
 type EvaluateCondition = (condition: unknown, value: unknown) => boolean;
@@ -82,10 +77,7 @@ function omit<T extends Record<string, any>, K extends keyof T>(
  * Sorts an array by iteratee functions or property keys (ascending).
  * Returns a new array; does not mutate the original.
  */
-function sortBy<T>(
-  arr: T[],
-  criteria: Array<((item: T) => unknown) | keyof T>,
-): T[] {
+function sortBy<T>(arr: T[], criteria: Array<((item: T) => unknown) | keyof T>): T[] {
   return arr.slice().sort((a, b) => {
     for (let i = 0; i < criteria.length; i++) {
       const criterion = criteria[i]!;
@@ -104,15 +96,6 @@ function sortBy<T>(
   });
 }
 
-const isNumber = (v: unknown): v is number =>
-  typeof v === "number" && !Number.isNaN(v);
+const isNumber = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);
 
-export {
-  shouldInclude,
-  isEqualDepencency,
-  invariant,
-  isUndefined,
-  omit,
-  sortBy,
-  isNumber,
-};
+export { shouldInclude, isEqualDepencency, invariant, isUndefined, omit, sortBy, isNumber };

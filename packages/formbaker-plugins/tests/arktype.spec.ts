@@ -6,13 +6,7 @@
  * mergeFields with empty record, etc.).
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import {
-  create,
-  addNode,
-  addDependency,
-  validate,
-  registerPlugin,
-} from "formbaker";
+import { create, addNode, addDependency, validate, registerPlugin } from "formbaker";
 import { arktypePlugin } from "@formbaker/plugins/arktype";
 
 describe("arktypePlugin", () => {
@@ -39,7 +33,8 @@ describe("arktypePlugin", () => {
 
   it("should validate optional text (null/undefined OK)", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
-      id: "bio", type: "text",
+      id: "bio",
+      type: "text",
     });
 
     expect(validate(form, { bio: null }).success).toBe(true);
@@ -101,7 +96,8 @@ describe("arktypePlugin", () => {
 
   it("should validate optional number", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
-      id: "opt", type: "number",
+      id: "opt",
+      type: "number",
     });
 
     expect(validate(form, { opt: null }).success).toBe(true);
@@ -151,7 +147,8 @@ describe("arktypePlugin", () => {
 
   it("should validate optional checkbox", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
-      id: "newsletter", type: "checkbox",
+      id: "newsletter",
+      type: "checkbox",
     });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
@@ -210,7 +207,8 @@ describe("arktypePlugin", () => {
 
   it("should validate optional file", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
-      id: "avatar", type: "file",
+      id: "avatar",
+      type: "file",
     });
 
     expect(validate(form, { avatar: null }).success).toBe(true);
@@ -334,8 +332,8 @@ describe("arktypePlugin", () => {
       { source: "parent", target: "child", condition: "string | number" },
     );
 
-    expect(validate(form, { parent: null }).success).toBe(true);   // null not in union → child hidden
-    expect(validate(form, { parent: 42 }).success).toBe(false);    // number matches → child visible but missing
+    expect(validate(form, { parent: null }).success).toBe(true); // null not in union → child hidden
+    expect(validate(form, { parent: 42 }).success).toBe(false); // number matches → child visible but missing
     expect(validate(form, { parent: 42, child: "z" }).success).toBe(true);
   });
 
@@ -352,8 +350,8 @@ describe("arktypePlugin", () => {
     );
 
     expect(validate(form, { age: null }).success).toBe(true);
-    expect(validate(form, { age: 15 }).success).toBe(true);        // 15 doesn't match, so child hidden
-    expect(validate(form, { age: 18 }).success).toBe(false);       // 18 matches, child required but missing
+    expect(validate(form, { age: 15 }).success).toBe(true); // 15 doesn't match, so child hidden
+    expect(validate(form, { age: 18 }).success).toBe(false); // 18 matches, child required but missing
     expect(validate(form, { age: 18, note: "adult" }).success).toBe(true);
     expect(validate(form, { age: 25, note: "ok" }).success).toBe(true);
   });
@@ -394,6 +392,6 @@ describe("arktypePlugin", () => {
     expect(validate(form, { color: 0, detail: "red" }).success).toBe(true);
     expect(validate(form, { color: 1 }).success).toBe(false);
     expect(validate(form, { color: 1, detail: "green" }).success).toBe(true);
-    expect(validate(form, { color: 2 }).success).toBe(true);       // condition doesn't match, child hidden
+    expect(validate(form, { color: 2 }).success).toBe(true); // condition doesn't match, child hidden
   });
 });

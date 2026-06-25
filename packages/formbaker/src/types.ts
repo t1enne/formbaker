@@ -48,13 +48,8 @@ export type FormbakerDependency = {
  * max, absolute) into their library's schema DSL.
  */
 export type FormbakerPlugin = {
-  field: (
-    field: FormbakerField,
-    values: Record<string, unknown>,
-  ) => StandardSchemaV1;
-  mergeFields: (
-    fields: Record<string, StandardSchemaV1>,
-  ) => StandardSchemaV1;
+  field: (field: FormbakerField, values: Record<string, unknown>) => StandardSchemaV1;
+  mergeFields: (fields: Record<string, StandardSchemaV1>) => StandardSchemaV1;
   evaluateCondition: (condition: unknown, value: unknown) => boolean;
 };
 
@@ -116,6 +111,4 @@ export interface PositionedField<T extends PlainObject> {
   node?: FormbakerField & T;
 }
 
-export type PositionedNode<T extends PlainObject = {}> =
-  | PositionedField<T>
-  | PositionedSection;
+export type PositionedNode<T extends PlainObject = {}> = PositionedField<T> | PositionedSection;

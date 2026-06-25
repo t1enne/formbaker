@@ -109,13 +109,13 @@ Formbaker operates at a different layer than these alternatives. It is _not_ a f
 
 ### If you were evaluating from scratch or considering a replacement:
 
-| Alternative                           | Comparison                                                                                                                                                                                                                                                                                        |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| React Hook Form + raw schemas         | Formbaker is a layer you could skip by writing schemas manually. But Formbaker generates them dynamically from a declarative config (fields + deps + values) — that dynamic generation is the value prop. If your forms are static or per-page handcrafted, raw RHF + your schema lib is simpler. |
-| TanStack Form                         | More mature, framework-agnostic, schema-first philosophy. No built-in support for conditional field visibility based on values — you'd need to compose. No graph layout. Would require a custom dependency-graph layer similar to Formbaker's.                                                    |
-| React JSON Schema Form (RJSF)         | Full renderer + schema in one. Good for JSON-driven forms, but JSON Schema is verbose and not great for conditional logic. Would need a custom widget set for Italian government (Bootstrap Italia) styling. Significantly heavier.                                                               |
-| @conform-to/react                     | Progressive, small. Works with any schema library (Zod, ArkType). No dependency graph, no dynamic schema generation — you write the schema once. Lighter but would not replace Formbaker's dynamic schema generation.                                                                             |
-| Final Form / React Final Form         | Mature subscription-based form state. No schema generation — validation is function-based. Would still need a schema generation layer.                                                                                                                                                            |
+| Alternative                   | Comparison                                                                                                                                                                                                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React Hook Form + raw schemas | Formbaker is a layer you could skip by writing schemas manually. But Formbaker generates them dynamically from a declarative config (fields + deps + values) — that dynamic generation is the value prop. If your forms are static or per-page handcrafted, raw RHF + your schema lib is simpler. |
+| TanStack Form                 | More mature, framework-agnostic, schema-first philosophy. No built-in support for conditional field visibility based on values — you'd need to compose. No graph layout. Would require a custom dependency-graph layer similar to Formbaker's.                                                    |
+| React JSON Schema Form (RJSF) | Full renderer + schema in one. Good for JSON-driven forms, but JSON Schema is verbose and not great for conditional logic. Would need a custom widget set for Italian government (Bootstrap Italia) styling. Significantly heavier.                                                               |
+| @conform-to/react             | Progressive, small. Works with any schema library (Zod, ArkType). No dependency graph, no dynamic schema generation — you write the schema once. Lighter but would not replace Formbaker's dynamic schema generation.                                                                             |
+| Final Form / React Final Form | Mature subscription-based form state. No schema generation — validation is function-based. Would still need a schema generation layer.                                                                                                                                                            |
 
 ### Quick decision guide
 
@@ -137,31 +137,31 @@ Formbaker's dependency graph solves these at the model level rather than at the 
 
 ## API
 
-| Function                           | Purpose                                                   |
-| ---------------------------------- | --------------------------------------------------------- |
-| `registerPlugin(name, plugin)`     | Register a validation plugin by name                      |
-| `create(params)`                   | Create a new form (requires `pluginName`)                 |
-| `addNode(form, field)`             | Add a field                                               |
-| `removeNode(form, id)`             | Remove a field (fails if it has outgoing deps)            |
-| `addSection(form, section)`        | Add a section (id must start with `#`)                    |
-| `removeSection(form, id)`          | Remove a section                                          |
-| `addDependency(form, dep)`         | Add a visibility dependency                               |
-| `removeDependency(form, dep)`      | Remove a dependency                                       |
-| `validate(form, values)`           | Validate data against the form's current visible schema   |
-| `getSchema(form, values)`          | Get the Standard Schema V1 for the current form state     |
-| `formbakerResolver(form)`          | React Hook Form resolver                                  |
-| `getSortedNodes(form)`             | All nodes sorted by order                                 |
-| `getOrderingMap(form)`             | Section-question numbering map                            |
-| `moveNode(form, id, targetId)`     | Reorder a node relative to another                        |
-| `clearForm(form)`                  | Remove all fields and dependencies                        |
-| `shouldInclude(form, node, value)` | Check if a node is visible given current values           |
+| Function                           | Purpose                                                 |
+| ---------------------------------- | ------------------------------------------------------- |
+| `registerPlugin(name, plugin)`     | Register a validation plugin by name                    |
+| `create(params)`                   | Create a new form (requires `pluginName`)               |
+| `addNode(form, field)`             | Add a field                                             |
+| `removeNode(form, id)`             | Remove a field (fails if it has outgoing deps)          |
+| `addSection(form, section)`        | Add a section (id must start with `#`)                  |
+| `removeSection(form, id)`          | Remove a section                                        |
+| `addDependency(form, dep)`         | Add a visibility dependency                             |
+| `removeDependency(form, dep)`      | Remove a dependency                                     |
+| `validate(form, values)`           | Validate data against the form's current visible schema |
+| `getSchema(form, values)`          | Get the Standard Schema V1 for the current form state   |
+| `formbakerResolver(form)`          | React Hook Form resolver                                |
+| `getSortedNodes(form)`             | All nodes sorted by order                               |
+| `getOrderingMap(form)`             | Section-question numbering map                          |
+| `moveNode(form, id, targetId)`     | Reorder a node relative to another                      |
+| `clearForm(form)`                  | Remove all fields and dependencies                      |
+| `shouldInclude(form, node, value)` | Check if a node is visible given current values         |
 
 ## Built-in plugins
 
-| Name        | Source                          | Export                   |
-| ----------- | ------------------------------- | ------------------------ |
-| `"arktype"` | `formbaker/plugins/arktype`     | `import { arktypePlugin }` |
-| `"zod"`     | `formbaker/plugins/zod`         | `import { zodPlugin }`     |
+| Name        | Source                      | Export                     |
+| ----------- | --------------------------- | -------------------------- |
+| `"arktype"` | `formbaker/plugins/arktype` | `import { arktypePlugin }` |
+| `"zod"`     | `formbaker/plugins/zod`     | `import { zodPlugin }`     |
 
 ## Types
 

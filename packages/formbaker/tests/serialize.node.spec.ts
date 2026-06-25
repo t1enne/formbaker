@@ -64,11 +64,7 @@ describe("serialization", () => {
 
     // child only required when parent is true
     expect(validate(rehydrated, { parent: false }).success).toBe(true);
-    expect(validate(rehydrated, { parent: true, child: "x" }).success).toBe(
-      true,
-    );
-    expect(validate(rehydrated, { parent: true, child: "" }).success).toBe(
-      false,
-    );
+    expect(validate(rehydrated, { parent: true, child: "x" }).success).toBe(true);
+    expect(validate(rehydrated, { parent: true, child: "" }).success).toBe(false);
   });
 });

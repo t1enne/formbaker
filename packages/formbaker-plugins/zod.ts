@@ -9,8 +9,7 @@ import { z } from "zod/v4";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import type { FormbakerField, FormbakerPlugin } from "formbaker";
 
-const isNumber = (v: unknown): v is number =>
-  typeof v === "number" && !Number.isNaN(v);
+const isNumber = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);
 
 const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
   const { validation } = field;
@@ -107,14 +106,25 @@ const mergeFields = (fields: Record<string, StandardSchemaV1>): StandardSchemaV1
 const evaluateCondition = (condition: unknown, value: unknown): boolean => {
   if (typeof condition !== "string") return true;
   switch (condition) {
-    case "true": return value != null && value !== false;
-    case "string": return typeof value === "string";
-    case "number": return typeof value === "number";
-    case "boolean": return typeof value === "boolean";
-    case "object": return value !== null && typeof value === "object";
-    case "any": return true;
-    default: return true; // arktype-specific DSL; fall back to always visible
+    case "true":
+      return value != null && value !== false;
+    case "string":
+      return typeof value === "string";
+    case "number":
+      return typeof value === "number";
+    case "boolean":
+      return typeof value === "boolean";
+    case "object":
+      return value !== null && typeof value === "object";
+    case "any":
+      return true;
+    default:
+      return true; // arktype-specific DSL; fall back to always visible
   }
 };
 
-export const zodPlugin: FormbakerPlugin = { field, mergeFields, evaluateCondition };
+export const zodPlugin: FormbakerPlugin = {
+  field,
+  mergeFields,
+  evaluateCondition,
+};

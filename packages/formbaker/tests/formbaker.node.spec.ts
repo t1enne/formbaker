@@ -16,7 +16,11 @@ describe("formbaker", () => {
   });
 
   it("should work with nullable fields", () => {
-    const form = addNode(create({ pluginName: "test" }), { id: "b", type: "text", defaultValue: null });
+    const form = addNode(create({ pluginName: "test" }), {
+      id: "b",
+      type: "text",
+      defaultValue: null,
+    });
     let formbakerValidateResult = validate(form, { b: "b" });
     expect(formbakerValidateResult.success).toBe(true);
   });

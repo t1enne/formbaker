@@ -10,14 +10,7 @@ import {
   PositionedField,
   FormbakerPlugin,
 } from "./types";
-import {
-  isEqualDepencency,
-  invariant,
-  omit,
-  sortBy,
-  shouldInclude,
-} from "./utils";
-import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+import { isEqualDepencency, invariant, omit, sortBy, shouldInclude } from "./utils";
 
 const pluginRegistry = new Map<string, FormbakerPlugin>();
 
@@ -27,13 +20,11 @@ export const registerPlugin = (name: string, plugin: FormbakerPlugin): void => {
 
 const resolvePlugin = (name: string): FormbakerPlugin => {
   const plugin = pluginRegistry.get(name);
-  if (!plugin) throw new Error(`Unknown plugin: "${name}"`);
+  invariant(plugin, `Unknown plugin: "${name}"`);
   return plugin;
 };
 
-const create = <S extends PlainObject, T extends Formbaker<S>>(
-  params: Partial<T> = {},
-): T => {
+const create = <S extends PlainObject, T extends Formbaker<S>>(params: Partial<T> = {}): T => {
   invariant(params.pluginName, "pluginName is required");
   return {
     id: params.id ?? Date.now().toString(),
@@ -53,8 +44,7 @@ const addNode = <T extends Formbaker>(
   field: Partial<T["fields"][string]> & Pick<T["fields"][string], "id">,
 ): T => {
   invariant(!form.fields[field.id], `Duplicate field id ${field.id}`);
-  const l =
-    Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
+  const l = Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
   return {
     ...form,
     fields: {
@@ -68,20 +58,14 @@ const addNode = <T extends Formbaker>(
   };
 };
 
-const addDependency = <T extends Formbaker>(
-  form: T,
-  dep: FormbakerDependency,
-): T => {
+const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): T => {
   const { target, source } = dep;
   const isSection = (id: string) => Object.keys(form.sections).includes(id);
 
   invariant(!isSection(source), "Cannot introduce relations from a section");
 
   invariant(target !== "" && source !== "", "Empty target/source ids");
-  invariant(
-    !isCyclical(form.dependencies, dep),
-    "Cannot introduce cyclical dependency",
-  );
+  invariant(!isCyclical(form.dependencies, dep), "Cannot introduce cyclical dependency");
 
   const forwardList = [...(form.dependencies.forward[source] ?? []), dep];
   const backwardList = [...(form.dependencies.backward[target] ?? []), dep];
@@ -101,9 +85,7 @@ const addDependency = <T extends Formbaker>(
   };
 };
 
-const removeDependency = <
-  T extends Pick<Formbaker, "fields" | "dependencies" | "sections">,
->(
+const removeDependency = <T extends Pick<Formbaker, "fields" | "dependencies" | "sections">>(
   form: T,
   dependency: FormbakerDependency,
 ): T => {
@@ -130,10 +112,7 @@ const removeDependency = <
   };
 };
 
-const removeNode = <T extends Formbaker>(
-  form: T,
-  nodeId: string,
-): [T, boolean] => {
+const removeNode = <T extends Formbaker>(form: T, nodeId: string): [T, boolean] => {
   const forward = form.dependencies.forward[nodeId] || [];
   if (forward.length) {
     return [form, false];
@@ -151,15 +130,11 @@ const removeNode = <T extends Formbaker>(
     deps = {
       forward: {
         ...deps.forward,
-        [source]: (deps.forward[source] ?? []).filter(
-          (dep) => !isEqualDepencency(d, dep),
-        ),
+        [source]: (deps.forward[source] ?? []).filter((dep) => !isEqualDepencency(d, dep)),
       },
       backward: {
         ...deps.backward,
-        [target]: (deps.backward[target] ?? []).filter(
-          (dep) => !isEqualDepencency(d, dep),
-        ),
+        [target]: (deps.backward[target] ?? []).filter((dep) => !isEqualDepencency(d, dep)),
       },
     };
   }
@@ -173,8 +148,7 @@ const addSection = <T extends Formbaker>(
 ): T => {
   invariant(section.id[0] == "#", "Section id must start with #");
   invariant(!form.sections[section.id], "Duplicate section id");
-  const l =
-    Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
+  const l = Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
 
   return {
     ...form,
@@ -263,14 +237,6 @@ const getSchema = <T extends Formbaker>(
   return plugin.mergeFields(merged);
 };
 
-const formbakerResolver =
-  (formbaker: Formbaker) =>
-  (...args: any[]) => {
-    const values = args[0];
-    const schema = getSchema(formbaker, values as Record<string, unknown>);
-    return standardSchemaResolver(schema as any)(...(args as [any, any, any]));
-  };
-
 const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
   form: T,
 ): Array<PositionedNode<S>> => {
@@ -284,8 +250,7 @@ const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
     unsorted.push({ id, type: "_node" });
   }
 
-  const getOrder = (id: string) =>
-    (form.fields[id] ?? form.sections[id])?.order ?? 0;
+  const getOrder = (id: string) => (form.fields[id] ?? form.sections[id])?.order ?? 0;
 
   const sorted = sortBy(unsorted, [(n) => getOrder(n.id)]);
 
@@ -346,11 +311,7 @@ const getOrderingMap = <T extends Formbaker>(form: T) => {
   return ordermap;
 };
 
-const moveNode = <T extends Formbaker>(
-  form: T,
-  nodeId: string,
-  targetNodeId: string,
-): T => {
+const moveNode = <T extends Formbaker>(form: T, nodeId: string, targetNodeId: string): T => {
   const node = form.fields[nodeId] ?? form.sections[nodeId];
   const target = form.fields[targetNodeId] ?? form.sections[targetNodeId];
   invariant(node, "no such node");
@@ -402,7 +363,6 @@ export {
   validate,
   clearForm,
   getSchema,
-  formbakerResolver,
   getSortedNodes,
   getOrderingMap,
   moveNode,
