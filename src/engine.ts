@@ -1,4 +1,3 @@
-import { type } from "arktype";
 import type { StandardSchemaV1 } from "@standard-schema/spec";
 import {
   Formbaker,
@@ -11,8 +10,6 @@ import {
   PositionedField,
   FormbakerPlugin,
 } from "./types";
-import { arktypePlugin } from "./plugins/arktype";
-import { zodPlugin } from "./plugins/zod";
 import {
   isEqualDepencency,
   invariant,
@@ -247,33 +244,25 @@ const clearForm = <T extends Formbaker>(form: T): T => {
 /**
  * Build a combined object schema from all visible fields.
  *
- * Skips optional fields whose current value is `undefined` — arktype's
- * `exactOptionalPropertyTypes` config requires keys to be present even when
- * the type allows `undefined`, so we omit them entirely to match the old behavior.
- *
- * ponytail: merge ceiling — the top-level object schema is always composed via
- * arktype's `type({...})`. Per-field schemas are produced by the plugin.
- * Upgrade path: if a non-arktype plugin needs a different merge strategy,
- * the merge function should become a second export from the plugin.
+ * Skips optional fields whose current value is `undefined` — the plugin's
+ * mergeFields handles optional-key behavior according to its own conventions.
  */
 const getSchema = <T extends Formbaker>(
   form: T,
   values: Record<string, unknown>,
 ): StandardSchemaV1 => {
-  const merged: Record<string, unknown> = {};
+  const plugin = resolvePlugin(form.pluginName);
+  const merged: Record<string, StandardSchemaV1> = {};
   for (const id in form.fields) {
     const field = form.fields[id]!;
-    if (!shouldInclude(form, field, values)) continue;
+    if (!shouldInclude(form, field, values, plugin.evaluateCondition)) continue;
     // Skip optional fields with no current value to avoid arktype's
     // exactOptionalPropertyTypes requiring the key to be present.
     const isOptional = !field.validation?.required;
     if (isOptional && values[id] === undefined) continue;
-    merged[id] = resolvePlugin(form.pluginName)(field, values);
+    merged[id] = plugin.field(field, values);
   }
-  if (Object.keys(merged).length === 0) {
-    return type({}) as unknown as StandardSchemaV1;
-  }
-  return type(merged) as unknown as StandardSchemaV1;
+  return plugin.mergeFields(merged);
 };
 
 const formbakerResolver =
