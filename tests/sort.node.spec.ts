@@ -1,15 +1,22 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import {
   addNode,
   addSection,
   create,
   getSortedNodes,
   getOrderingMap,
+  registerPlugin,
 } from "@/engine";
+import { arktypePlugin } from "@/plugins/arktype";
 
 describe("getOrderingMap", () => {
+  beforeAll(() => {
+    registerPlugin("arktype", arktypePlugin);
+  });
+
   it("numbers flat questions sequentially (no sections)", () => {
     const form = create({
+      pluginName: "arktype",
       fields: {
         b: { id: "b", type: "checkbox" },
         c: { id: "c", type: "checkbox" },
@@ -24,7 +31,7 @@ describe("getOrderingMap", () => {
   });
 
   it("numbers questions with sections: 1, 1.1, 1.2, 2, 2.1", () => {
-    let form = create();
+    let form = create({ pluginName: "arktype" });
     form = addSection(form, { id: "#s1", label: "Topic A" });
     form = addNode(form, { id: "q1" });
     form = addNode(form, { id: "q2" });
@@ -40,7 +47,7 @@ describe("getOrderingMap", () => {
   });
 
   it("numbers questions with 3+ sections correctly", () => {
-    let form = create();
+    let form = create({ pluginName: "arktype" });
     form = addSection(form, { id: "#s1" });
     form = addNode(form, { id: "q1" });
     form = addSection(form, { id: "#s2" });
@@ -59,7 +66,7 @@ describe("getOrderingMap", () => {
 
   describe("getSortedNodes", () => {
     it("sorts fields by insertion order", () => {
-      let form = create();
+      let form = create({ pluginName: "arktype" });
       form = addNode(form, { id: "a" });
       form = addNode(form, { id: "b" });
       form = addNode(form, { id: "c" });

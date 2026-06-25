@@ -49,17 +49,14 @@ export type FormbakerDependency = {
  *
  * Plugins decide how to translate {@link FormbakerValidation} rules (required, min,
  * max, absolute) into their library's schema DSL.
- *
- * @example // ArkType plugin (built-in)
- * (field, values) => type("string > 0") // arktype Type implements StandardSchemaV1
- *
- * @example // Zod plugin (user-provided)
- * (field, values) => z.string().min(1) // with ~standard adapter
  */
 export type FormbakerPlugin = (
   field: FormbakerField,
   values: Record<string, unknown>,
 ) => StandardSchemaV1;
+
+/** A JSON-safe identifier for the validation plugin. */
+export type FormbakerPluginName = string;
 
 export interface Formbaker<T extends PlainObject = {}> {
   id: string;
@@ -70,8 +67,8 @@ export interface Formbaker<T extends PlainObject = {}> {
     forward: { [x: string]: FormbakerDependency[] };
     backward: { [x: string]: FormbakerDependency[] };
   };
-  /** The validation plugin used by this form. Defaults to the built-in arktype plugin. */
-  plugin: FormbakerPlugin;
+  /** Name of the validation plugin. "arktype" (built-in) or "zod". */
+  pluginName: FormbakerPluginName;
 }
 
 export interface FormbakerSection {

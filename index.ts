@@ -13,6 +13,7 @@ export {
   getSortedNodes,
   getOrderingMap,
   moveNode,
+  registerPlugin,
 } from "./src/engine";
 
 export { arktypePlugin } from "./src/plugins/arktype";

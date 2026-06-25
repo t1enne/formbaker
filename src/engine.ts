@@ -9,8 +9,10 @@ import {
   PositionedNode,
   PositionedSection,
   PositionedField,
+  FormbakerPlugin,
 } from "./types";
 import { arktypePlugin } from "./plugins/arktype";
+import { zodPlugin } from "./plugins/zod";
 import {
   isEqualDepencency,
   invariant,
@@ -20,9 +22,22 @@ import {
 } from "./utils";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 
+const pluginRegistry = new Map<string, FormbakerPlugin>();
+
+export const registerPlugin = (name: string, plugin: FormbakerPlugin): void => {
+  pluginRegistry.set(name, plugin);
+};
+
+const resolvePlugin = (name: string): FormbakerPlugin => {
+  const plugin = pluginRegistry.get(name);
+  if (!plugin) throw new Error(`Unknown plugin: "${name}"`);
+  return plugin;
+};
+
 const create = <S extends PlainObject, T extends Formbaker<S>>(
   params: Partial<T> = {},
 ): T => {
+  invariant(params.pluginName, "pluginName is required");
   return {
     id: params.id ?? Date.now().toString(),
     label: params.label ?? "",
@@ -32,7 +47,7 @@ const create = <S extends PlainObject, T extends Formbaker<S>>(
       forward: {},
       backward: {},
     },
-    plugin: params.plugin ?? arktypePlugin,
+    pluginName: params.pluginName,
   } as T;
 };
 
@@ -253,7 +268,7 @@ const getSchema = <T extends Formbaker>(
     // exactOptionalPropertyTypes requiring the key to be present.
     const isOptional = !field.validation?.required;
     if (isOptional && values[id] === undefined) continue;
-    merged[id] = form.plugin(field, values);
+    merged[id] = resolvePlugin(form.pluginName)(field, values);
   }
   if (Object.keys(merged).length === 0) {
     return type({}) as unknown as StandardSchemaV1;

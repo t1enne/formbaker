@@ -5,14 +5,19 @@ import {
   addDependency,
   validate,
   removeDependency,
+  registerPlugin,
 } from "@/engine";
+import { arktypePlugin } from "@/plugins/arktype";
 import { flow } from "@/utils";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 
 describe("formbaker dependencies", () => {
+  beforeAll(() => {
+    registerPlugin("arktype", arktypePlugin);
+  });
   it("should handle optional subsections", () => {
     const createForm = flow(
-      () => create(),
+      () => create({ pluginName: "arktype" }),
       (f) => addNode(f, { id: "parent", type: "text" }),
       (f) =>
         addNode(f, {
@@ -45,6 +50,7 @@ describe("formbaker dependencies", () => {
   it("should handle optional subfields", () => {
     const form = addDependency(
       create({
+        pluginName: "arktype",
         fields: {
           parent: {
             id: "parent",
@@ -81,6 +87,7 @@ describe("formbaker dependencies", () => {
 
   it("should detect immediate self-references", () => {
     const form = create({
+      pluginName: "arktype",
       fields: {
         fieldA: { id: "fieldA", type: "text" },
       },
@@ -96,6 +103,7 @@ describe("formbaker dependencies", () => {
 
   it("handle removal of dependencies", () => {
     let form = create({
+      pluginName: "arktype",
       fields: {
         fieldA: { id: "fieldA", type: "text" },
         fieldB: { id: "fieldB", type: "text" },
@@ -124,6 +132,7 @@ describe("formbaker dependencies", () => {
 
   it("should remove nodes and its edges", () => {
     let form = create({
+      pluginName: "arktype",
       fields: {
         fieldA: { id: "fieldA", type: "text" },
         fieldB: { id: "fieldB", type: "text" },

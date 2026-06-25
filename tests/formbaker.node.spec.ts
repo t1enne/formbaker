@@ -1,9 +1,14 @@
 import { create, addNode, validate } from "@/engine";
-import { describe, expect, it } from "vitest";
+import { registerPlugin } from "@/engine";
+import { arktypePlugin } from "@/plugins/arktype";
+import { describe, expect, it, beforeAll } from "vitest";
 
 describe("formbaker", () => {
+  beforeAll(() => {
+    registerPlugin("arktype", arktypePlugin);
+  });
   it("should throw when adding nodes with duplicate ids", () => {
-    const form = create();
+    const form = create({ pluginName: "arktype" });
     const form2 = addNode(form, { id: "personal", type: "text" });
 
     expect(() => {
@@ -12,13 +17,14 @@ describe("formbaker", () => {
   });
 
   it("should work with nullable fields", () => {
-    const form = addNode(create(), { id: "b", type: "text", defaultValue: null });
+    const form = addNode(create({ pluginName: "arktype" }), { id: "b", type: "text", defaultValue: null });
     let formbakerValidateResult = validate(form, { b: "b" });
     expect(formbakerValidateResult.success).toBe(true);
   });
 
   it("should handle validations", () => {
     const form = create({
+      pluginName: "arktype",
       fields: {
         b: {
           id: "b",
@@ -43,6 +49,7 @@ describe("formbaker", () => {
 
   it("should handle max validation for numbers", () => {
     const form = create({
+      pluginName: "arktype",
       fields: {
         age: {
           id: "age",
