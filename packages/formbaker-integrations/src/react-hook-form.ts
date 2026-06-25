@@ -41,15 +41,11 @@ import type { Formbaker } from "formbaker";
  *                 optional fields without values to exclude. Defaults to `{}`.
  * @param opts   - Additional react-hook-form useForm options (defaults, mode, etc.).
  */
-export function useFormbakerForm<
-  Input extends FieldValues = FieldValues,
-  Context = unknown,
-  Output = Input,
->(
+export function useFormbakerForm<Input extends FieldValues = FieldValues, Context = unknown>(
   form: Formbaker,
   values: Record<string, unknown> = {},
   opts?: Omit<UseFormProps<Input, Context>, "resolver">,
-): UseFormReturn<Input, Context, Output> {
+): UseFormReturn<Input, Context, Input> {
   // ponytail: getSchema returns StandardSchemaV1<unknown, unknown> because
   // Formbaker doesn't track field types at the type level. The resolver cast
   // is safe — `validate` runs the plugin's actual schema at runtime, and
@@ -58,13 +54,11 @@ export function useFormbakerForm<
   // StandardSchemaV1 whose runtime validate accepts the Input shape.
   // Upgrade path: if formbaker adds type-level schema inference, use
   // StandardSchemaV1.InferInput / InferOutput to thread types through.
-  const resolver = useMemo<Resolver<Input, Context, Output>>(() => {
-    return standardSchemaResolver(
-      getSchema(form, values) as StandardSchemaV1<Input, Output>,
-    );
+  const resolver = useMemo<Resolver<Input, Context, Input>>(() => {
+    return standardSchemaResolver(getSchema(form, values) as StandardSchemaV1<Input, Input>);
   }, [form, values]);
 
-  return useForm<Input, Context, Output>({
+  return useForm<Input, Context, Input>({
     ...opts,
     resolver,
   });

@@ -1,36 +1,37 @@
 /**
  * Tests for the Angular FormBuilder integration.
- *
- * Angular's FormBuilder / FormGroup classes cannot be instantiated without
- * the full Angular DI runtime, so we provide minimal objects that match the
- * method signatures. These are typed against the real @angular/forms types
- * via `satisfies` so the compiler catches any drift.
  */
 import { describe, expect, it } from "vitest";
 import { create, addNode } from "formbaker";
-import type { FormBuilder, FormGroup, FormControl, ValidatorFn } from "@angular/forms";
+import type { ValidatorFn } from "@angular/forms";
 import {
   formbakerToFormGroup,
   rebuildFormGroup,
   type FormbakerValidators,
+  type FormBuilderLike,
+  type FormGroupLike,
 } from "../src/angular";
 
-const fakeFb = {
-  control(value: unknown, validators?: ValidatorFn | ValidatorFn[]) {
-    return { value, validators: validators ?? [], controls: undefined } as unknown as FormControl;
-  },
-  group(controls: Record<string, FormControl>) {
-    return { controls } as unknown as FormGroup;
-  },
-} satisfies FormBuilder;
+// --- Fakes ---
 
-const fakeValidators = {
-  required: (msg?: string) => (() => ({ required: true, message: msg })) as unknown as ValidatorFn,
-  minLength: (v: number, msg?: string) => (() => ({ minLength: true, value: v, message: msg })) as unknown as ValidatorFn,
-  maxLength: (v: number, msg?: string) => (() => ({ maxLength: true, value: v, message: msg })) as unknown as ValidatorFn,
-  min: (v: number, msg?: string) => (() => ({ min: true, value: v, message: msg })) as unknown as ValidatorFn,
-  max: (v: number, msg?: string) => (() => ({ max: true, value: v, message: msg })) as unknown as ValidatorFn,
-} satisfies FormbakerValidators;
+const fakeFb: FormBuilderLike = {
+  control(value, validators) {
+    return { value, _validators: validators ?? [] };
+  },
+  group(controls) {
+    return { controls };
+  },
+};
+
+const fakeValidators: FormbakerValidators = {
+  required: (msg) => (() => ({ required: true, message: msg })) as unknown as ValidatorFn,
+  minLength: (v, msg) =>
+    (() => ({ minLength: true, value: v, message: msg })) as unknown as ValidatorFn,
+  maxLength: (v, msg) =>
+    (() => ({ maxLength: true, value: v, message: msg })) as unknown as ValidatorFn,
+  min: (v, msg) => (() => ({ min: true, value: v, message: msg })) as unknown as ValidatorFn,
+  max: (v, msg) => (() => ({ max: true, value: v, message: msg })) as unknown as ValidatorFn,
+};
 
 describe("angular FormBuilder integration", () => {
   it("should produce a form group with one control per field", () => {
@@ -56,10 +57,10 @@ describe("angular FormBuilder integration", () => {
 
     const group = formbakerToFormGroup(form, fakeFb, fakeValidators);
 
-    expect(group.controls["a"]!.value).toBe("");
-    expect(group.controls["b"]!.value).toBeNull();
-    expect(group.controls["c"]!.value).toBe(false);
-    expect(group.controls["d"]!.value).toBeNull();
+    expect((group.controls["a"]! as any).value).toBe("");
+    expect((group.controls["b"]! as any).value).toBeNull();
+    expect((group.controls["c"]! as any).value).toBe(false);
+    expect((group.controls["d"]! as any).value).toBeNull();
   });
 
   it("should call Validators.required / min / max based on validation config", () => {
@@ -77,25 +78,22 @@ describe("angular FormBuilder integration", () => {
 
     // Build a tracing FormBuilder that records which validators were requested
     const calls: string[] = [];
-    const tracingFb = {
-      control(value: unknown, validators?: ValidatorFn | ValidatorFn[]) {
+    const tracingFb: FormBuilderLike = {
+      control(value, validators) {
         calls.push(
           `control(${JSON.stringify(value)}) + ${Array.isArray(validators) ? validators.length : validators ? 1 : 0} validator(s)`,
         );
         return fakeFb.control(value, validators);
       },
-      group(controls: Record<string, FormControl>) {
+      group(controls) {
         return fakeFb.group(controls);
       },
-    } satisfies FormBuilder;
+    };
 
     formbakerToFormGroup(form, tracingFb, fakeValidators);
 
     // name gets 1 validator (required), age gets 2 (min, max)
-    expect(calls).toEqual([
-      'control("") + 1 validator(s)',
-      'control(null) + 2 validator(s)',
-    ]);
+    expect(calls).toEqual(['control("") + 1 validator(s)', "control(null) + 2 validator(s)"]);
   });
 
   it("should not apply required validator for optional fields", () => {
@@ -148,27 +146,30 @@ describe("angular FormBuilder integration", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, { id: "name", type: "text" });
 
+    const ctrls: Record<string, { value: unknown }> = {
+      name: fakeFb.control(""),
+    };
     let added = "";
     let removed = "";
-    const mutableGroup = {
-      controls: { name: fakeFb.control("") } as Record<string, FormControl>,
-      addControl(name: string, ctrl: FormControl) {
+    const mutableGroup: FormGroupLike = {
+      controls: ctrls,
+      addControl(name, ctrl) {
         added = name;
-        mutableGroup.controls[name] = ctrl;
+        ctrls[name] = ctrl;
       },
-      removeControl(name: string) {
+      removeControl(name) {
         removed = name;
-        delete mutableGroup.controls[name];
+        delete ctrls[name];
       },
-      get(name: string) {
-        return mutableGroup.controls[name] ?? null;
+      get(name) {
+        return ctrls[name] ?? null;
       },
-    } satisfies FormGroup;
+    };
 
     // Add a second field
     form = addNode(form, { id: "email", type: "text" });
 
-    rebuildFormGroup(form, mutableGroup as FormGroup, fakeFb, fakeValidators);
+    rebuildFormGroup(form, mutableGroup, fakeFb, fakeValidators);
 
     expect(added).toBe("email");
     expect(removed).toBe("");
@@ -176,27 +177,28 @@ describe("angular FormBuilder integration", () => {
   });
 
   it("rebuildFormGroup should remove controls for removed fields", () => {
+    const ctrls: Record<string, { value: unknown }> = {
+      keep: fakeFb.control("keep"),
+      remove: fakeFb.control("remove"),
+    };
     let removed = "";
-    const mutableGroup = {
-      controls: {
-        keep: fakeFb.control("keep") as FormControl,
-        remove: fakeFb.control("remove") as FormControl,
-      },
+    const mutableGroup: FormGroupLike = {
+      controls: ctrls,
       addControl: () => {},
-      removeControl(name: string) {
+      removeControl(name) {
         removed = name;
-        delete mutableGroup.controls[name];
+        delete ctrls[name];
       },
-      get(name: string) {
-        return mutableGroup.controls[name] ?? null;
+      get(name) {
+        return ctrls[name] ?? null;
       },
-    } satisfies FormGroup;
+    };
 
     // Create a form without the "remove" field
     const form1 = create({ pluginName: "zod" });
     const form = addNode(form1, { id: "keep", type: "text" });
 
-    rebuildFormGroup(form, mutableGroup as FormGroup, fakeFb, fakeValidators);
+    rebuildFormGroup(form, mutableGroup, fakeFb, fakeValidators);
 
     expect(removed).toBe("remove");
     expect(Object.keys(mutableGroup.controls)).toEqual(["keep"]);

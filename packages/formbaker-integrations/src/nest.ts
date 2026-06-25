@@ -125,11 +125,7 @@ export const formbakerToClassValidator = (
   form: Formbaker,
   opts: ClassValidatorOptions = {},
 ): string => {
-  const {
-    className = "FormbakerDto",
-    includeImports = true,
-    classDecorators = [],
-  } = opts;
+  const { className = "FormbakerDto", includeImports = true, classDecorators = [] } = opts;
 
   const lines: string[] = [];
 
@@ -146,10 +142,8 @@ export const formbakerToClassValidator = (
   }
 
   if (includeImports) {
-    const sortedDecs = [...usedDecorators].sort();
-    lines.push(
-      `import { ${sortedDecs.join(", ")} } from "class-validator";`,
-    );
+    const sortedDecs = [...usedDecorators].toSorted();
+    lines.push(`import { ${sortedDecs.join(", ")} } from "class-validator";`);
     lines.push("");
   }
 

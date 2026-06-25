@@ -30,8 +30,37 @@ const shouldInclude = (
   if (value === undefined || !evaluateCondition) {
     return true;
   }
-  // WARN: evaluate whether OR or AND should be used here
-  return deps.some((d) => evaluateCondition(d.condition, value[d.source]));
+
+  // Group dependencies by their combinator type.
+  const groups = new Map<string, FormbakerDependency[]>();
+  for (const d of deps) {
+    const key = d.dependencyType ?? "OR";
+    const list = groups.get(key);
+    if (list) {
+      list.push(d);
+    } else {
+      groups.set(key, [d]);
+    }
+  }
+
+  // Each group evaluates internally according to its combinator.
+  // Groups are then OR'd together.
+  const evalDep = (d: FormbakerDependency) => evaluateCondition(d.condition, value[d.source]);
+  for (const [type, group] of groups) {
+    switch (type) {
+      case "AND":
+        if (group.every(evalDep)) return true;
+        break;
+      case "XOR":
+        if (group.filter(evalDep).length === 1) return true;
+        break;
+      default: // OR
+        if (group.some(evalDep)) return true;
+        break;
+    }
+  }
+
+  return false;
 };
 
 const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
@@ -42,6 +71,9 @@ const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
     return false;
   }
   if (a.condition !== b.condition) {
+    return false;
+  }
+  if ((a.dependencyType ?? "OR") !== (b.dependencyType ?? "OR")) {
     return false;
   }
   return true;
@@ -78,7 +110,7 @@ function omit<T extends Record<string, any>, K extends keyof T>(
  * Returns a new array; does not mutate the original.
  */
 function sortBy<T>(arr: T[], criteria: Array<((item: T) => unknown) | keyof T>): T[] {
-  return arr.slice().sort((a, b) => {
+  return (arr.slice() as T[]).toSorted((a: T, b: T) => {
     for (let i = 0; i < criteria.length; i++) {
       const criterion = criteria[i]!;
       const fn: (item: T) => unknown =

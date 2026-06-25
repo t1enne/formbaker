@@ -15,4 +15,12 @@ export {
   registerPlugin,
 } from "./src/engine";
 
-export type { FormbakerPlugin, FormbakerField, Formbaker, FormbakerValidation, PlainObject, FormbakerDependency, FormbakerSection, } from "./src/types";
+export type {
+  FormbakerPlugin,
+  FormbakerField,
+  Formbaker,
+  FormbakerValidation,
+  PlainObject,
+  FormbakerDependency,
+  FormbakerSection,
+} from "./src/types";

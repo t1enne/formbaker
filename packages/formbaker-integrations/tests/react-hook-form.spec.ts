@@ -6,12 +6,7 @@
  * the resolver actually validates using the Formbaker schema.
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import {
-  create,
-  addNode,
-  registerPlugin,
-  getSchema,
-} from "formbaker";
+import { create, addNode, registerPlugin, getSchema } from "formbaker";
 import { arktypePlugin } from "@formbaker/plugins/arktype";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 

@@ -16,7 +16,25 @@
  * ```
  */
 import type { Formbaker, FormbakerField, FormbakerValidation } from "formbaker";
-import type { FormBuilder, FormGroup, FormControl, ValidatorFn } from "@angular/forms";
+import type { ValidatorFn } from "@angular/forms";
+
+// --- Interfaces for the Angular types we actually call ---
+// These are compatible subsets of the real @angular/forms classes,
+// so a real FormBuilder / FormGroup satisfies them naturally.
+
+export interface FormBuilderLike {
+  control(value: unknown, validators?: ValidatorFn | ValidatorFn[]): { value: unknown };
+  group(controls: Record<string, { value: unknown }>): {
+    controls: Record<string, { value: unknown }>;
+  };
+}
+
+export interface FormGroupLike {
+  controls: Record<string, { value: unknown }>;
+  get(name: string): { value: unknown } | null;
+  addControl(name: string, control: { value: unknown }): void;
+  removeControl(name: string): void;
+}
 
 export interface FormbakerFormGroupOptions {
   /** Current form values used for dependency-based visibility. Defaults to `{}`. */
@@ -46,9 +64,7 @@ const buildValidators = (
   const { required, min, max } = validation;
 
   if (required) {
-    validators.push(
-      V.required(required === true ? undefined : required.message),
-    );
+    validators.push(V.required(required === true ? undefined : required.message));
   }
 
   if (min !== undefined) {
@@ -95,13 +111,13 @@ const getDefaultValue = (field: FormbakerField): unknown => {
  */
 export const formbakerToFormGroup = (
   form: Formbaker,
-  fb: FormBuilder,
+  fb: FormBuilderLike,
   validators: FormbakerValidators,
   opts: FormbakerFormGroupOptions = {},
-): FormGroup => {
+) => {
   void opts; // reserved for future visibility support
 
-  const controls: Record<string, FormControl> = {};
+  const controls: Record<string, { value: unknown }> = {};
 
   for (const id in form.fields) {
     const field = form.fields[id]!;
@@ -110,7 +126,7 @@ export const formbakerToFormGroup = (
     controls[id] = fb.control(defaultValue, v);
   }
 
-  return fb.group(controls) as FormGroup;
+  return fb.group(controls);
 };
 
 /**
@@ -134,8 +150,8 @@ export const formbakerToFormGroup = (
  */
 export const rebuildFormGroup = (
   form: Formbaker,
-  group: FormGroup,
-  fb: FormBuilder,
+  group: FormGroupLike,
+  fb: FormBuilderLike,
   validators: FormbakerValidators,
   _opts: FormbakerFormGroupOptions = {},
 ): void => {

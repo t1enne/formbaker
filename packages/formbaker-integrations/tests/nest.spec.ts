@@ -11,7 +11,7 @@ describe("nest class-validator code generation", () => {
     form = addNode(form, { id: "name", type: "text", validation: { required: true } });
     const code = formbakerToClassValidator(form, { className: "TestDto" });
 
-    expect(code).toContain('import {');
+    expect(code).toContain("import {");
     expect(code).toContain('from "class-validator"');
     // No unused class-transformer import
     expect(code).not.toContain('from "class-transformer"');

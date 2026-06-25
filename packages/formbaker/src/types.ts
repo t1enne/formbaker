@@ -34,6 +34,8 @@ export type FormbakerDependency = {
   condition: any;
   source: string;
   target: string;
+  /** How multiple dependencies on the same target combine. Defaults to "OR". */
+  dependencyType?: "AND" | "OR" | "XOR";
 };
 
 /**
