@@ -5,10 +5,7 @@ const field = {
   id: "b",
   type: "select" as const,
   validation: {},
-  options: [
-    { it: "a", eng: "a" },
-    { it: "b", eng: "b" },
-  ],
+  options: ["a", "b"],
 };
 
 describe("formbaker selects", () => {

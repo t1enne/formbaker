@@ -91,10 +91,7 @@ describe("zodPlugin", () => {
     addNode(form, {
       id: "color",
       type: "select",
-      options: [
-        { it: "Rosso", eng: "Red" },
-        { it: "Verde", eng: "Green" },
-      ],
+      options: ["Rosso", "Verde"],
       validation: { required: true },
     });
 
@@ -108,7 +105,7 @@ describe("zodPlugin", () => {
     addNode(form, {
       id: "size",
       type: "select",
-      options: [{ it: "Piccolo", eng: "Small" }],
+      options: ["Piccolo"],
     });
 
     expect(validate(form, { size: null }).success).toBe(true);

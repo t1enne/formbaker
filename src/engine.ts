@@ -26,7 +26,7 @@ const create = <S extends PlainObject, T extends Formbaker<S>>(
 ): T => {
   return {
     id: params.id ?? Date.now().toString(),
-    label: params.label ?? {},
+    label: params.label ?? "",
     fields: params.fields ?? {},
     sections: params.sections ?? {},
     dependencies: params.dependencies ?? {

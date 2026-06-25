@@ -8,11 +8,6 @@ export declare type Optional<O, K extends keyof any = keyof O> = {
   [P in Exclude<keyof O, K>]: O[P];
 };
 
-export type TranslationDict = {
-  it: string | null;
-  eng: string | null;
-};
-
 export type ValidationRuleMap = {
   required: { message: string } | boolean;
   min: number;
@@ -32,7 +27,7 @@ export type FormbakerTypeMap = {
   textarea: { defaultValue?: unknown };
   select: {
     defaultValue?: unknown;
-    options: TranslationDict[];
+    options: string[];
   };
   file: {};
 };
@@ -68,7 +63,7 @@ export type FormbakerPlugin = (
 
 export interface Formbaker<T extends PlainObject = {}> {
   id: string;
-  label: Partial<TranslationDict>;
+  label: string;
   fields: Record<string, FormbakerField & T>;
   sections: Record<string, FormbakerSection>;
   dependencies: {
@@ -81,15 +76,15 @@ export interface Formbaker<T extends PlainObject = {}> {
 
 export interface FormbakerSection {
   id: string;
-  label?: Partial<TranslationDict>;
-  description?: Partial<TranslationDict>;
+  label?: string;
+  description?: string;
   order?: number;
 }
 
 export interface BaseField {
   id: string;
-  label?: Partial<TranslationDict>;
-  description?: Partial<TranslationDict>;
+  label?: string;
+  description?: string;
   type: keyof FormbakerTypeMap;
   validation?: FormbakerValidation;
   order?: number;

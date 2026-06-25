@@ -18,6 +18,7 @@ describe("getOrderingMap", () => {
     });
 
     const lo = getOrderingMap(form);
+    console.log(JSON.stringify(form));
     expect(lo.get("b")).toBe("1");
     expect(lo.get("c")).toBe("2");
     expect(lo.get("a")).toBe("3");
@@ -25,10 +26,10 @@ describe("getOrderingMap", () => {
 
   it("numbers questions with sections: 1, 1.1, 1.2, 2, 2.1", () => {
     const form = create();
-    addSection(form, { id: "#s1", label: { it: "Topic A" } });
+    addSection(form, { id: "#s1", label: "Topic A" });
     addNode(form, { id: "q1" });
     addNode(form, { id: "q2" });
-    addSection(form, { id: "#s2", label: { it: "Topic B" } });
+    addSection(form, { id: "#s2", label: "Topic B" });
     addNode(form, { id: "q3" });
 
     const lo = getOrderingMap(form);
