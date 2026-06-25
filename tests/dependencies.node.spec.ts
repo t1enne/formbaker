@@ -8,7 +8,7 @@ import {
   registerPlugin,
 } from "@/engine";
 import { arktypePlugin } from "@/plugins/arktype";
-import { flow } from "@/utils";
+
 import { describe, it, expect, beforeAll } from "vitest";
 
 describe("formbaker dependencies", () => {
@@ -16,22 +16,21 @@ describe("formbaker dependencies", () => {
     registerPlugin("arktype", arktypePlugin);
   });
   it("should handle optional subsections", () => {
-    const createForm = flow(
-      () => create({ pluginName: "arktype" }),
-      (f) => addNode(f, { id: "parent", type: "text" }),
-      (f) =>
-        addNode(f, {
-          id: "child",
-          type: "number",
-          validation: { required: true },
-        }),
-      (f) =>
-        addDependency(f, {
-          source: "parent",
-          target: "child",
-          condition: "string",
-        }),
-    );
+    const createForm = () => {
+      let f = create({ pluginName: "arktype" });
+      f = addNode(f, { id: "parent", type: "text" });
+      f = addNode(f, {
+        id: "child",
+        type: "number",
+        validation: { required: true },
+      });
+      f = addDependency(f, {
+        source: "parent",
+        target: "child",
+        condition: "string",
+      });
+      return f;
+    };
     const form = createForm();
     const tests = [
       [{}, true],
