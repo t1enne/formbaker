@@ -4,7 +4,9 @@
 
 Formbaker is not a form library like React Hook Form or TanStack Form. It's a lightweight engine that manages form _structure_ (fields, sections, dependencies) and dynamically derives a **Standard Schema V1** from the current form state and visible fields. Validation is delegated to a **plugin** — currently ArkType and Zod are built-in. Plugins are registered by name, keeping form definitions fully **serializable as JSON**.
 
-If your forms are mostly static — fields are always the same — use Formbaker's dependencies directly (React Hook Form + raw schemas) or TanStack Form. If your forms have complex conditional visibility rules where field B only matters when field A is a certain value, Formbaker gives you a declarative dependency graph for that.
+Form definitions are pure data — no functions, no imports. This makes them storable in a database, editable in a configurator UI, and portable across stacks. The form you `create({ pluginName: "zod" })` by hand is indistinguishable from one loaded by `JSON.parse()`.
+
+If your forms are mostly static — fields are always the same — use Formbaker's dependencies directly (React Hook Form + raw schemas) or TanStack Form. If your forms have complex conditional visibility rules or you're building a form configurator that stores and reloads form schemas, Formbaker gives you a declarative dependency graph for that.
 
 ## Features
 
@@ -15,8 +17,8 @@ If your forms are mostly static — fields are always the same — use Formbaker
 - **Per-field validation** — required, min, max.
 - **Reordering** — move fields and sections relative to each other; ordering is recalculated automatically.
 - **Auto-numbering** — produce section-question numbering (1, 1.1, 1.2, 2, 2.1, …).
-- **Plug into React Hook Form** — `formbakerResolver` wraps `@hookform/resolvers/standard-schema` so you can use Formbaker with `useForm`.
-- **Serializable** — form definitions contain only data (strings, numbers, objects). No functions. `JSON.stringify`/`JSON.parse` round-trips cleanly.
+- **Plug into React Hook Form** — `useFormbakerForm` hook provides a resolver that rebuilds the schema on value changes.
+- **Serializable** — form definitions contain only data (strings, numbers, objects). No functions. `JSON.stringify`/`JSON.parse` round-trips cleanly. Designed for form configurators that store and reload schemas from a database or CMS.
 - **Plugin system** — swap validation backends via a named plugin registry. No plugin dependency is bundled unless you register it.
 
 ## How it works
@@ -25,7 +27,7 @@ If your forms are mostly static — fields are always the same — use Formbaker
 
 ```ts
 import { registerPlugin } from "formbaker";
-import { arktypePlugin } from "formbaker/plugins/arktype";
+import { arktypePlugin } from "@formbaker/plugins/arktype";
 
 registerPlugin("arktype", arktypePlugin);
 ```
@@ -34,7 +36,7 @@ Or for Zod:
 
 ```ts
 import { registerPlugin } from "formbaker";
-import { zodPlugin } from "formbaker/plugins/zod";
+import { zodPlugin } from "@formbaker/plugins/zod";
 
 registerPlugin("zod", zodPlugin);
 ```
@@ -86,6 +88,163 @@ const loaded = JSON.parse(json);
 const restored = create({ ...loaded, pluginName: loaded.pluginName });
 // Validation works as before — the plugin is resolved by name.
 ```
+
+## The form configurator use case
+
+Formbaker's strongest use case isn't hand-coding forms — it's building a **form configurator**.
+
+Picture a drag-and-drop UI where admins compose forms from a palette of field types, wire up conditional visibility, and save. The output is a plain JSON object — zero functions, zero imports — that you store in a database or CMS:
+
+```json
+{
+  "pluginName": "zod",
+  "fields": [
+    { "id": "has_vehicle", "type": "checkbox", "label": { "eng": "Do you have a vehicle?" } },
+    { "id": "license_plate", "type": "text", "validation": { "required": true } }
+  ],
+  "dependencies": [
+    { "source": "has_vehicle", "target": "license_plate", "condition": "true" }
+  ]
+}
+```
+
+Later, when a user fills out that form, you `create()` from the stored JSON and call `validate()`. The plugin is resolved by name — the form definition never touches validation code. Same JSON, same behavior, whether it was built by hand or by a configurator.
+
+## Integration examples
+
+### Zod + React Hook Form
+
+```bash
+npm install formbaker @formbaker/plugins @formbaker/integrations zod react-hook-form
+```
+
+```tsx
+import { create, addNode, addDependency, registerPlugin } from "formbaker";
+import { zodPlugin } from "@formbaker/plugins/zod";
+import { useFormbakerForm } from "@formbaker/integrations/react-hook-form";
+
+// 1. Register the Zod plugin once (e.g. in your app entry point)
+registerPlugin("zod", zodPlugin);
+
+// 2. Declare the form structure — pure data, serializable
+const vehicleForm = create({ pluginName: "zod" });
+
+addNode(vehicleForm, {
+  id: "has_vehicle",
+  type: "checkbox",
+  label: "Do you own a vehicle?",
+});
+
+addNode(vehicleForm, {
+  id: "license_plate",
+  type: "text",
+  label: "License plate number",
+  validation: { required: { message: "License plate is required" }, min: 3 },
+});
+
+addDependency(vehicleForm, {
+  source: "has_vehicle",
+  target: "license_plate",
+  condition: "true",
+});
+
+// 3. Use in a React component
+function VehicleForm() {
+  const { register, handleSubmit, watch, formState: { errors } } =
+    useFormbakerForm(vehicleForm, watch());
+
+  return (
+    <form onSubmit={handleSubmit((data) => console.log(data))}>
+      <label>
+        <input type="checkbox" {...register("has_vehicle")} />
+        I own a vehicle
+      </label>
+
+      {/* license_plate only renders (and validates) when has_vehicle is true */}
+      <label>
+        License plate:
+        <input {...register("license_plate")} />
+        {errors.license_plate && <span>{errors.license_plate.message}</span>}
+      </label>
+
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
+
+When `has_vehicle` is unchecked, `license_plate` is excluded from the schema entirely — no validation runs on it. Check the box and the required/min-length rules kick in automatically.
+
+### ArkType + Angular
+
+```bash
+npm install formbaker @formbaker/plugins @formbaker/integrations arktype @angular/forms
+```
+
+```ts
+import { create, addNode, addDependency, registerPlugin } from "formbaker";
+import { arktypePlugin } from "@formbaker/plugins/arktype";
+import { rebuildFormGroup } from "@formbaker/integrations/angular";
+import { Component, inject } from "@angular/core";
+import { FormBuilder, Validators, ReactiveFormsModule } from "@angular/forms";
+
+// 1. Register the ArkType plugin once
+registerPlugin("arktype", arktypePlugin);
+
+// 2. Declare the form structure
+const insuranceForm = create({ pluginName: "arktype" });
+
+addNode(insuranceForm, { id: "name", type: "text", label: "Full name", validation: { required: true } });
+
+addNode(insuranceForm, {
+  id: "age",
+  type: "number",
+  label: "Age",
+  validation: { min: 0, max: 120 },
+});
+
+addNode(insuranceForm, {
+  id: "plan",
+  type: "select",
+  label: "Insurance plan",
+  options: ["Basic", "Standard", "Premium"],
+});
+
+@Component({
+  selector: "app-insurance-form",
+  standalone: true,
+  imports: [ReactiveFormsModule],
+  template: `
+    <form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
+      <input formControlName="name" placeholder="Full name" />
+      <input formControlName="age" type="number" placeholder="Age" />
+      <select formControlName="plan">
+        <option value="">Select plan</option>
+        <option value="0">Basic</option>
+        <option value="1">Standard</option>
+        <option value="2">Premium</option>
+      </select>
+      <button type="submit" [disabled]="formGroup.invalid">Submit</button>
+    </form>
+  `,
+})
+export class InsuranceFormComponent {
+  private fb = inject(FormBuilder);
+  formGroup = this.fb.group({});
+
+  constructor() {
+    rebuildFormGroup(insuranceForm, this.formGroup, this.fb, Validators);
+  }
+
+  onSubmit() {
+    if (this.formGroup.valid) {
+      console.log(this.formGroup.value);
+    }
+  }
+}
+```
+
+ArkType schemas are built from the form definition and applied as Angular validators. When dependencies hide fields, `rebuildFormGroup` removes their controls from the group so they don't participate in validation.
 
 ## Plugin system
 
@@ -149,7 +308,7 @@ Formbaker's dependency graph solves these at the model level rather than at the 
 | `removeDependency(form, dep)`      | Remove a dependency                                     |
 | `validate(form, values)`           | Validate data against the form's current visible schema |
 | `getSchema(form, values)`          | Get the Standard Schema V1 for the current form state   |
-| `formbakerResolver(form)`          | React Hook Form resolver                                |
+
 | `getSortedNodes(form)`             | All nodes sorted by order                               |
 | `getOrderingMap(form)`             | Section-question numbering map                          |
 | `moveNode(form, id, targetId)`     | Reorder a node relative to another                      |
@@ -158,10 +317,10 @@ Formbaker's dependency graph solves these at the model level rather than at the 
 
 ## Built-in plugins
 
-| Name        | Source                      | Export                     |
-| ----------- | --------------------------- | -------------------------- |
-| `"arktype"` | `formbaker/plugins/arktype` | `import { arktypePlugin }` |
-| `"zod"`     | `formbaker/plugins/zod`     | `import { zodPlugin }`     |
+| Name        | Package                     | Import                                                |
+| ----------- | --------------------------- | ----------------------------------------------------- |
+| `"arktype"` | `@formbaker/plugins`        | `import { arktypePlugin } from "@formbaker/plugins/arktype"` |
+| `"zod"`     | `@formbaker/plugins`        | `import { zodPlugin } from "@formbaker/plugins/zod"`         |
 
 ## Types
 
