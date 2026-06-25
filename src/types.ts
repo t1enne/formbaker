@@ -2,12 +2,6 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
 
 export type PlainObject = Record<string, unknown>;
 
-export declare type Optional<O, K extends keyof any = keyof O> = {
-  [P in K & keyof O]?: O[P];
-} & {
-  [P in Exclude<keyof O, K>]: O[P];
-};
-
 export type ValidationRuleMap = {
   required: { message: string } | boolean;
   min: number;
@@ -43,17 +37,26 @@ export type FormbakerDependency = {
 };
 
 /**
- * A validation plugin produces a Standard Schema v1 validator for a given field.
- * It receives the field definition and the current form values (for dependency-based
- * visibility checks). The returned schema must implement {@link StandardSchemaV1}.
+ * A validation plugin for Formbaker.
+ *
+ * Each plugin must provide three operations:
+ * - `field`: translate a single FormbakerField into a Standard Schema v1 validator.
+ * - `mergeFields`: compose a record of named field schemas into a single object schema.
+ * - `evaluateCondition`: evaluate a dependency condition against a raw value.
  *
  * Plugins decide how to translate {@link FormbakerValidation} rules (required, min,
  * max, absolute) into their library's schema DSL.
  */
-export type FormbakerPlugin = (
-  field: FormbakerField,
-  values: Record<string, unknown>,
-) => StandardSchemaV1;
+export type FormbakerPlugin = {
+  field: (
+    field: FormbakerField,
+    values: Record<string, unknown>,
+  ) => StandardSchemaV1;
+  mergeFields: (
+    fields: Record<string, StandardSchemaV1>,
+  ) => StandardSchemaV1;
+  evaluateCondition: (condition: unknown, value: unknown) => boolean;
+};
 
 /** A JSON-safe identifier for the validation plugin. */
 export type FormbakerPluginName = string;
@@ -85,8 +88,8 @@ export interface BaseField {
   type: keyof FormbakerTypeMap;
   validation?: FormbakerValidation;
   order?: number;
-  // variable id
-  $$?: string;
+  /** Arbitrary consumer-defined metadata. */
+  meta?: Record<string, unknown>;
 }
 
 export type FormbakerField<T extends keyof FormbakerTypeMap = "text"> = {
