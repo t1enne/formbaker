@@ -1,10 +1,12 @@
-import { type } from "arktype";
 import {
   Formbaker,
   FormbakerDependency,
   FormbakerField,
   FormbakerSection,
 } from "./types";
+
+/** Signature for a plugin's dependency evaluation. */
+type EvaluateCondition = (condition: unknown, value: unknown) => boolean;
 
 /**
  * This works assuming that relationships between fields are within a section
@@ -15,12 +17,13 @@ import {
 
 /**
  * Checks if a node should be included based on its backward dependencies.
- * Dependency conditions are arktype schema strings and are evaluated directly.
+ * Dependency conditions are evaluated via the plugin's evaluateCondition callback.
  */
 const shouldInclude = (
   form: Formbaker,
   node: FormbakerField | FormbakerSection,
   value: Record<string, unknown> | undefined,
+  evaluateCondition?: EvaluateCondition,
 ) => {
   if (!node) {
     return false;
@@ -29,15 +32,11 @@ const shouldInclude = (
   if (!deps || deps.length === 0) {
     return true;
   }
-  if (value === undefined) {
+  if (value === undefined || !evaluateCondition) {
     return true;
   }
   // WARN: evaluate whether OR or AND should be used here
-  return deps.some((d) => {
-    const r = type(d.condition as any)(value[d.source]);
-    const hasError = r instanceof type.errors;
-    return !hasError;
-  });
+  return deps.some((d) => evaluateCondition(d.condition, value[d.source]));
 };
 
 const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
@@ -52,18 +51,6 @@ const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
   }
   return true;
 };
-
-const getNodeAtOrder = <T extends Formbaker>(form: T, order = 0) => {
-  const field = Object.values(form.fields).find((f) => f.order === order);
-  return field ?? Object.values(form.sections).find((s) => s.order === order);
-};
-
-/**
- * returns a, b, c etc
- */
-const getLetterFromIndex = (index: number) => String.fromCharCode(97 + index);
-const getIndexFromLetter = (letter: string) =>
-  letter.toLowerCase().charCodeAt(0) - 97;
 
 // --- Replacing es-toolkit functions ---
 
@@ -89,43 +76,6 @@ function omit<T extends Record<string, any>, K extends keyof T>(
     delete result[key as string];
   }
   return result as unknown as Omit<T, K>;
-}
-
-/** Deep merge source into target (mutates target). Skips unsafe prototype keys. */
-function merge<
-  T extends Record<PropertyKey, any>,
-  S extends Record<PropertyKey, any>,
->(target: T, source: S): T & S {
-  const unsafeKeys = new Set(["__proto__", "constructor", "prototype"]);
-  const t = target as Record<string, unknown>;
-  for (const key of Object.keys(source)) {
-    if (unsafeKeys.has(key)) continue;
-    const sv = source[key];
-    const tv = t[key];
-    if (isMergeable(sv) && isMergeable(tv)) {
-      t[key] = merge(
-        tv as Record<PropertyKey, unknown>,
-        sv as Record<PropertyKey, unknown>,
-      );
-    } else if (Array.isArray(sv)) {
-      t[key] = merge([] as unknown as Record<PropertyKey, unknown>, sv);
-    } else if (isPlainObject(sv)) {
-      t[key] = merge({}, sv as Record<PropertyKey, unknown>);
-    } else if (tv === void 0 || sv !== void 0) {
-      t[key] = sv;
-    }
-  }
-  return target as T & S;
-}
-
-function isMergeable(value: unknown): boolean {
-  return isPlainObject(value) || Array.isArray(value);
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (value === null || typeof value !== "object") return false;
-  const proto = Object.getPrototypeOf(value);
-  return proto === null || proto === Object.prototype;
 }
 
 /**
@@ -154,46 +104,15 @@ function sortBy<T>(
   });
 }
 
-/** Composes functions left-to-right. */
-function flow<A extends unknown[], B, C>(
-  f1: (...args: A) => B,
-  f2: (arg: B) => C,
-): (...args: A) => C;
-function flow<A extends unknown[], B, C, D>(
-  f1: (...args: A) => B,
-  f2: (arg: B) => C,
-  f3: (arg: C) => D,
-): (...args: A) => D;
-function flow<A extends unknown[], B, C, D, E>(
-  f1: (...args: A) => B,
-  f2: (arg: B) => C,
-  f3: (arg: C) => D,
-  f4: (arg: D) => E,
-): (...args: A) => E;
-function flow(...funcs: Array<(...args: any[]) => unknown>) {
-  return function (this: unknown, ...args: unknown[]) {
-    let result = funcs.length ? funcs[0]!.apply(this, args) : args[0];
-    for (let i = 1; i < funcs.length; i++) {
-      result = funcs[i]!.call(this, result);
-    }
-    return result;
-  };
-}
-
 const isNumber = (v: unknown): v is number =>
   typeof v === "number" && !Number.isNaN(v);
 
 export {
   shouldInclude,
   isEqualDepencency,
-  getNodeAtOrder,
-  getIndexFromLetter,
-  getLetterFromIndex,
   invariant,
   isUndefined,
   omit,
-  merge,
   sortBy,
   isNumber,
-  flow,
 };
