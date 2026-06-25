@@ -43,27 +43,28 @@ describe("formbaker dependencies", () => {
   });
 
   it("should handle optional subfields", () => {
-    const form = create({
-      fields: {
-        parent: {
-          id: "parent",
-          defaultValue: null,
-          type: "checkbox",
+    const form = addDependency(
+      create({
+        fields: {
+          parent: {
+            id: "parent",
+            defaultValue: null,
+            type: "checkbox",
+          },
+          child: {
+            id: "child",
+            defaultValue: null,
+            type: "checkbox",
+            validation: { required: true },
+          },
         },
-        child: {
-          id: "child",
-          defaultValue: null,
-          type: "checkbox",
-          validation: { required: true },
-        },
+      }),
+      {
+        source: "parent",
+        target: "child",
+        condition: "true",
       },
-    });
-
-    addDependency(form, {
-      source: "parent",
-      target: "child",
-      condition: "true",
-    });
+    );
 
     const tests = [
       [{ parent: null }, true],
@@ -94,7 +95,7 @@ describe("formbaker dependencies", () => {
   });
 
   it("handle removal of dependencies", () => {
-    const form = create({
+    let form = create({
       fields: {
         fieldA: { id: "fieldA", type: "text" },
         fieldB: { id: "fieldB", type: "text" },
@@ -106,48 +107,51 @@ describe("formbaker dependencies", () => {
       target: "fieldB",
       condition: "any",
     };
-    addDependency(form, d);
-    addDependency(form, {
+    form = addDependency(form, d);
+    form = addDependency(form, {
       source: "fieldB",
       target: "fieldC",
       condition: "any",
     });
 
-    removeDependency(form, d);
+    const result = removeDependency(form, d);
 
-    expect(form.dependencies.forward[d.source]!.length).toBe(0);
-    expect(form.dependencies.backward[d.target]!.length).toBe(0);
+    expect(result.dependencies.forward[d.source]!.length).toBe(0);
+    expect(result.dependencies.backward[d.target]!.length).toBe(0);
+    // original form is unchanged
+    expect(form.dependencies.forward[d.source]!.length).toBe(1);
   });
 
   it("should remove nodes and its edges", () => {
-    const form = create({
+    let form = create({
       fields: {
         fieldA: { id: "fieldA", type: "text" },
         fieldB: { id: "fieldB", type: "text" },
         fieldC: { id: "fieldC", type: "text" },
       },
     });
-    const d = {
+    form = addDependency(form, {
       source: "fieldA",
       target: "fieldB",
       condition: "any",
-    };
-    addDependency(form, d);
-    addDependency(form, {
+    });
+    form = addDependency(form, {
       source: "fieldB",
       target: "fieldC",
       condition: "any",
     });
 
-    // remove node in the middle
+    // remove node in the middle — has outbound edges, should fail
     let [, success] = removeNode(form, "fieldA");
     expect(success).toBeFalsy();
 
     // remove terminal node
-    [, success] = removeNode(form, "fieldC");
-    expect(success).toBeTruthy();
+    const [result, success2] = removeNode(form, "fieldC");
+    expect(success2).toBeTruthy();
 
-    expect(form.fields["fieldC"]).toBeFalsy();
-    expect(form.dependencies.forward["fieldB"]!.length).toBe(0);
+    expect(result.fields["fieldC"]).toBeFalsy();
+    expect(result.dependencies.forward["fieldB"]!.length).toBe(0);
+    // original form is unchanged
+    expect(form.fields["fieldC"]).toBeTruthy();
   });
 });

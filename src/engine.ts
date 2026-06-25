@@ -14,7 +14,6 @@ import { arktypePlugin } from "./plugins/arktype";
 import {
   isEqualDepencency,
   invariant,
-  merge,
   omit,
   sortBy,
   shouldInclude,
@@ -44,9 +43,13 @@ const addNode = <T extends Formbaker>(
   invariant(!form.fields[field.id], `Duplicate field id ${field.id}`);
   const l =
     Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
-  form.fields[field.id] = { ...field, order: l, type: field.type ?? "text" };
-
-  return form;
+  return {
+    ...form,
+    fields: {
+      ...form.fields,
+      [field.id]: { ...field, order: l, type: field.type ?? "text" } as T["fields"][string],
+    },
+  };
 };
 
 const addDependency = <T extends Formbaker>(
@@ -64,20 +67,28 @@ const addDependency = <T extends Formbaker>(
     "Cannot introduce cyclical dependency",
   );
 
-  // Add to forward map
-  const forwardMap =
-    form.dependencies.forward[source] ?? ([] as FormbakerDependency[]);
-  forwardMap.push(dep);
+  const forwardList = [
+    ...(form.dependencies.forward[source] ?? []),
+    dep,
+  ];
+  const backwardList = [
+    ...(form.dependencies.backward[target] ?? []),
+    dep,
+  ];
 
-  // Add to backward map
-  const backwardMap =
-    form.dependencies.backward[target] ?? ([] as FormbakerDependency[]);
-  backwardMap.push(dep);
-
-  form.dependencies.forward[source] = forwardMap;
-  form.dependencies.backward[target] = backwardMap;
-
-  return form;
+  return {
+    ...form,
+    dependencies: {
+      forward: {
+        ...form.dependencies.forward,
+        [source]: forwardList,
+      },
+      backward: {
+        ...form.dependencies.backward,
+        [target]: backwardList,
+      },
+    },
+  };
 };
 
 const removeDependency = <
@@ -85,25 +96,28 @@ const removeDependency = <
 >(
   form: T,
   dependency: FormbakerDependency,
-) => {
+): T => {
   const { target, source } = dependency;
-  // Add to forward map
-  const fwdList =
-    form.dependencies.forward[source] ?? ([] as FormbakerDependency[]);
+  const fwdList = (form.dependencies.forward[source] ?? []).filter(
+    (d) => !isEqualDepencency(dependency, d),
+  );
+  const bwdList = (form.dependencies.backward[target] ?? []).filter(
+    (d) => !isEqualDepencency(dependency, d),
+  );
 
-  // Add to backward map
-  const bwdList =
-    form.dependencies.backward[target] ?? ([] as FormbakerDependency[]);
-  // find the idx to remove
-  const fidx = fwdList.findIndex((d) => isEqualDepencency(dependency, d));
-  const bidx = bwdList.findIndex((d) => isEqualDepencency(dependency, d));
-
-  fwdList.splice(fidx, 1);
-  bwdList.splice(bidx, 1);
-  form.dependencies.forward[source] = fwdList;
-  form.dependencies.backward[target] = bwdList;
-
-  return form;
+  return {
+    ...form,
+    dependencies: {
+      forward: {
+        ...form.dependencies.forward,
+        [source]: fwdList,
+      },
+      backward: {
+        ...form.dependencies.backward,
+        [target]: bwdList,
+      },
+    },
+  };
 };
 
 const removeNode = <T extends Formbaker>(
@@ -114,38 +128,63 @@ const removeNode = <T extends Formbaker>(
   if (forward.length) {
     return [form, false];
   }
-  form.fields = omit(form.fields, [nodeId]);
-  Object.values(form.dependencies.forward)
-    .flat()
-    .filter((d) => d.target === nodeId || d.source === nodeId)
-    .forEach((d) => removeDependency(form, d));
 
-  return [form, true];
+  const fields = omit(form.fields, [nodeId]);
+
+  const toRemove = Object.values(form.dependencies.forward)
+    .flat()
+    .filter((d) => d.target === nodeId || d.source === nodeId);
+
+  let deps = form.dependencies;
+  for (const d of toRemove) {
+    const { target, source } = d;
+    deps = {
+      forward: {
+        ...deps.forward,
+        [source]: (deps.forward[source] ?? []).filter(
+          (dep) => !isEqualDepencency(d, dep),
+        ),
+      },
+      backward: {
+        ...deps.backward,
+        [target]: (deps.backward[target] ?? []).filter(
+          (dep) => !isEqualDepencency(d, dep),
+        ),
+      },
+    };
+  }
+
+  return [{ ...form, fields, dependencies: deps }, true];
 };
 
 const addSection = <T extends Formbaker>(
   form: T,
   section: Partial<FormbakerSection> & Pick<FormbakerSection, "id">,
-) => {
+): T => {
   invariant(section.id[0] == "#", "Section id must start with #");
   invariant(!form.sections[section.id], "Duplicate section id");
   const l =
     Object.keys(form.fields).length + Object.keys(form.sections).length + 1;
-  form.sections = merge(form.sections, {
-    [section.id]: {
-      ...section,
-      order: l,
-    },
-  });
 
-  return form;
+  return {
+    ...form,
+    sections: {
+      ...form.sections,
+      [section.id]: {
+        ...section,
+        order: l,
+      },
+    },
+  };
 };
 
-const removeSection = <T extends Formbaker>(form: T, sectionId: string) => {
+const removeSection = <T extends Formbaker>(form: T, sectionId: string): T => {
   const section = form.sections[sectionId];
   invariant(section?.id, `No section ${sectionId}`);
-  form.sections = omit(form.sections, [sectionId]);
-  return form;
+  return {
+    ...form,
+    sections: omit(form.sections, [sectionId]),
+  };
 };
 
 const isCyclical = (
@@ -183,9 +222,11 @@ const validate = <T>(form: Formbaker, values: T): FormResult<T> => {
 };
 
 const clearForm = <T extends Formbaker>(form: T): T => {
-  form.fields = {};
-  form.dependencies = { forward: {}, backward: {} };
-  return form;
+  return {
+    ...form,
+    fields: {} as T["fields"],
+    dependencies: { forward: {}, backward: {} },
+  };
 };
 
 /**
@@ -256,7 +297,7 @@ const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
       return {
         type,
         id,
-        node: merge(field, { order: order + 1 }),
+        node: { ...field, order: order + 1 },
         position: { x: 0, y: 0 },
       } satisfies PositionedField<S>;
     }
@@ -266,7 +307,7 @@ const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
       return {
         type,
         id,
-        section: merge(section, { order: order + 1 }),
+        section: { ...section, order: order + 1 },
         position: { x: 0, y: 0 },
       } satisfies PositionedSection;
     }
@@ -320,18 +361,29 @@ const moveNode = <T extends Formbaker>(
   invariant(activeIdx !== -1, "Active node not found in sorted list");
   invariant(overIdx !== -1, "Target node not found in sorted list");
 
-  const active = allIds.splice(activeIdx, 1)[0]!;
+  const sorted = [...allIds];
+  const [activeNode] = sorted.splice(activeIdx, 1);
   const insertAfterIdx = activeIdx < overIdx ? overIdx - 1 : overIdx;
-  allIds.splice(insertAfterIdx + 1, 0, active);
+  sorted.splice(insertAfterIdx + 1, 0, activeNode!);
 
-  allIds.forEach((item, idx) => {
-    const entry = form.fields[item.id] ?? form.sections[item.id];
-    if (entry) {
-      entry.order = idx + 1;
+  let newFields = form.fields;
+  let newSections = form.sections;
+  sorted.forEach((item, idx) => {
+    const newOrder = idx + 1;
+    if (item.id in form.fields) {
+      const entry = form.fields[item.id]!;
+      if (entry.order !== newOrder) {
+        newFields = { ...newFields, [item.id]: { ...entry, order: newOrder } };
+      }
+    } else if (item.id in form.sections) {
+      const entry = form.sections[item.id]!;
+      if (entry.order !== newOrder) {
+        newSections = { ...newSections, [item.id]: { ...entry, order: newOrder } };
+      }
     }
   });
 
-  return form;
+  return { ...form, fields: newFields, sections: newSections };
 };
 
 export {

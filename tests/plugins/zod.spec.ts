@@ -16,16 +16,18 @@ describe("zodPlugin", () => {
 
   // --- text ---
   it("should validate required text", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, { id: "name", type: "text", validation: { required: true } });
+    const form = addNode(create({ plugin: zodPlugin }), {
+      id: "name", type: "text", validation: { required: true },
+    });
 
     expect(validate(form, { name: "" }).success).toBe(false);
     expect(validate(form, { name: "Alice" }).success).toBe(true);
   });
 
   it("should validate optional text (null/undefined OK)", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, { id: "bio", type: "text" });
+    const form = addNode(create({ plugin: zodPlugin }), {
+      id: "bio", type: "text",
+    });
 
     expect(validate(form, { bio: null }).success).toBe(true);
     expect(validate(form, { bio: undefined }).success).toBe(true);
@@ -33,8 +35,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce text min/max", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "msg",
       type: "text",
       validation: { min: 2, max: 5 },
@@ -49,8 +50,7 @@ describe("zodPlugin", () => {
 
   // --- number ---
   it("should validate required number", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "age",
       type: "number",
       validation: { required: true },
@@ -63,8 +63,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce number min/max", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "score",
       type: "number",
       validation: { min: 0, max: 100 },
@@ -77,8 +76,9 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional number", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, { id: "opt", type: "number" });
+    const form = addNode(create({ plugin: zodPlugin }), {
+      id: "opt", type: "number",
+    });
 
     expect(validate(form, { opt: null }).success).toBe(true);
     expect(validate(form, { opt: undefined }).success).toBe(true);
@@ -87,8 +87,7 @@ describe("zodPlugin", () => {
 
   // --- select ---
   it("should validate required select", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "color",
       type: "select",
       options: ["Rosso", "Verde"],
@@ -101,8 +100,7 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional select", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "size",
       type: "select",
       options: ["Piccolo"],
@@ -115,8 +113,7 @@ describe("zodPlugin", () => {
 
   // --- checkbox ---
   it("should validate required checkbox", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "agree",
       type: "checkbox",
       validation: { required: true },
@@ -129,8 +126,9 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional checkbox", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, { id: "newsletter", type: "checkbox" });
+    const form = addNode(create({ plugin: zodPlugin }), {
+      id: "newsletter", type: "checkbox",
+    });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
     expect(validate(form, { newsletter: undefined }).success).toBe(true);
@@ -138,8 +136,7 @@ describe("zodPlugin", () => {
 
   // --- radio ---
   it("should validate required radio", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "gender",
       type: "radio",
       validation: { required: true },
@@ -152,8 +149,7 @@ describe("zodPlugin", () => {
 
   // --- textarea ---
   it("should validate required textarea", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "bio",
       type: "textarea",
       validation: { required: true },
@@ -164,8 +160,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce textarea min/max", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "desc",
       type: "textarea",
       validation: { min: 10, max: 100 },
@@ -177,8 +172,7 @@ describe("zodPlugin", () => {
 
   // --- file ---
   it("should validate required file as object", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    const form = addNode(create({ plugin: zodPlugin }), {
       id: "resume",
       type: "file",
       validation: { required: true },
@@ -189,8 +183,9 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional file", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, { id: "avatar", type: "file" });
+    const form = addNode(create({ plugin: zodPlugin }), {
+      id: "avatar", type: "file",
+    });
 
     expect(validate(form, { avatar: null }).success).toBe(true);
     expect(validate(form, { avatar: undefined }).success).toBe(true);
@@ -198,13 +193,13 @@ describe("zodPlugin", () => {
 
   // --- multiple fields ---
   it("should validate multiple fields together", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    let form = create({ plugin: zodPlugin });
+    form = addNode(form, {
       id: "name",
       type: "text",
       validation: { required: true },
     });
-    addNode(form, {
+    form = addNode(form, {
       id: "age",
       type: "number",
       validation: { min: 18 },
@@ -215,13 +210,13 @@ describe("zodPlugin", () => {
   });
 
   it("should fail when one of multiple fields is invalid", () => {
-    const form = create({ plugin: zodPlugin });
-    addNode(form, {
+    let form = create({ plugin: zodPlugin });
+    form = addNode(form, {
       id: "name",
       type: "text",
       validation: { required: true },
     });
-    addNode(form, {
+    form = addNode(form, {
       id: "age",
       type: "number",
       validation: { min: 18 },

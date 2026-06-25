@@ -4,16 +4,15 @@ import { describe, expect, it } from "vitest";
 describe("formbaker", () => {
   it("should throw when adding nodes with duplicate ids", () => {
     const form = create();
-    addNode(form, { id: "personal", type: "text" });
+    const form2 = addNode(form, { id: "personal", type: "text" });
 
     expect(() => {
-      addNode(form, { id: "personal", type: "text" });
+      addNode(form2, { id: "personal", type: "text" });
     }).toThrow();
   });
 
   it("should work with nullable fields", () => {
-    const form = create();
-    addNode(form, { id: "b", type: "text", defaultValue: null });
+    const form = addNode(create(), { id: "b", type: "text", defaultValue: null });
     let formbakerValidateResult = validate(form, { b: "b" });
     expect(formbakerValidateResult.success).toBe(true);
   });
