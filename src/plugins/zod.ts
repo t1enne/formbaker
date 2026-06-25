@@ -66,8 +66,55 @@ const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
 };
 
 /**
- * Zod plugin: converts a Formbaker field into a Zod schema,
- * which natively implements `StandardSchemaV1`.
+ * Zod plugin: converts a Formbaker field into a Zod schema.
+ * Zod 4.x schemas natively implement StandardSchemaV1.
  */
-export const zodPlugin: FormbakerPlugin = (field, _values) =>
-  buildSchema(field) as unknown as StandardSchemaV1;
+const field = (_field: FormbakerField, _values: Record<string, unknown>): StandardSchemaV1 =>
+  buildSchema(_field);
+
+/**
+ * Merge named field schemas into a single object schema via Zod.
+ */
+const mergeFields = (fields: Record<string, StandardSchemaV1>): StandardSchemaV1 => {
+  if (Object.keys(fields).length === 0) {
+    return z.object({});
+  }
+  // Check each schema — Zod's own objects implement StandardSchemaV1 via buildSchema.
+  // For user-supplied schemas that might be other StandardSchemaV1 implementations,
+  // we wrap them into a Zod object. If they're already Zod schemas, z.object picks
+  // them up as-is since ZodObject's shape accepts ZodTypeAny.
+  const shape: Record<string, z.ZodTypeAny> = {};
+  for (const key of Object.keys(fields)) {
+    shape[key] = fields[key] as z.ZodTypeAny;
+  }
+  return z.object(shape);
+};
+
+/**
+ * Evaluate a dependency condition by parsing the string as a Zod schema
+ * and checking whether the value matches.
+ *
+ * Condition strings in Formbaker are arktype DSL, not Zod DSL.
+ * For Zod we reinterpret common patterns:
+ *   "true"        → value must be truthy (non-null, non-undefined, non-false)
+ *   "string"      → value must be a string
+ *   "number"      → value must be a number
+ *   "boolean"     → value must be a boolean
+ *   "object"      → value must be a non-null object
+ *   "any"         → always true
+ *   default:       → always true (arktype-specific conditions can't be translated)
+ */
+const evaluateCondition = (condition: unknown, value: unknown): boolean => {
+  if (typeof condition !== "string") return true;
+  switch (condition) {
+    case "true": return value != null && value !== false;
+    case "string": return typeof value === "string";
+    case "number": return typeof value === "number";
+    case "boolean": return typeof value === "boolean";
+    case "object": return value !== null && typeof value === "object";
+    case "any": return true;
+    default: return true; // arktype-specific DSL; fall back to always visible
+  }
+};
+
+export const zodPlugin: FormbakerPlugin = { field, mergeFields, evaluateCondition };

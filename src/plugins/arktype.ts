@@ -67,8 +67,29 @@ const buildSchema = (field: FormbakerField): string => {
  * ArkType plugin: converts a Formbaker field into an arktype `Type`,
  * which natively implements `StandardSchemaV1`.
  */
-export const arktypePlugin: FormbakerPlugin = (field, _values) => {
-  const schema = buildSchema(field);
-  // Dynamic schema string — arktype can't narrow at compile time.
-  return type(schema as any) as unknown as StandardSchemaV1;
+const field = (_field: FormbakerField, _values: Record<string, unknown>): StandardSchemaV1 => {
+  const schema = buildSchema(_field);
+  // Dynamic schema string — arktype can't narrow at compile time, so `as any` is unavoidable.
+  return type(schema as any);
 };
+
+/**
+ * Merge named field schemas into a single object schema via arktype `type()`.
+ */
+const mergeFields = (fields: Record<string, StandardSchemaV1>): StandardSchemaV1 => {
+  if (Object.keys(fields).length === 0) {
+    return type({});
+  }
+  return type(fields);
+};
+
+/**
+ * Evaluate a dependency condition by parsing it as an arktype schema
+ * and checking whether the value matches.
+ */
+const evaluateCondition = (condition: unknown, value: unknown): boolean => {
+  const r = type(condition as any)(value);
+  return !(r instanceof type.errors);
+};
+
+export const arktypePlugin: FormbakerPlugin = { field, mergeFields, evaluateCondition };

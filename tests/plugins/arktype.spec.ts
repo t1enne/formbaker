@@ -1,27 +1,36 @@
 /**
- * Tests for the Zod validation plugin.
+ * Tests for the ArkType validation plugin.
  *
- * Mirrors the arktype plugin's coverage: each field type, optional vs required,
- * min/max constraints, edge cases, and plugin-specific mergeFields/evaluateCondition.
+ * Covers each field type, optional vs required, min/max constraints,
+ * edge cases, and plugin-specific features (DSL-based dependency conditions,
+ * mergeFields with empty record, etc.).
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import { create, addNode, validate, registerPlugin, addDependency } from "@/engine";
-import { zodPlugin } from "@/plugins/zod";
+import {
+  create,
+  addNode,
+  addDependency,
+  validate,
+  registerPlugin,
+} from "@/engine";
+import { arktypePlugin } from "@/plugins/arktype";
 
-describe("zodPlugin", () => {
+describe("arktypePlugin", () => {
   beforeAll(() => {
-    registerPlugin("zod", zodPlugin);
+    registerPlugin("arktype", arktypePlugin);
   });
 
   it("should set the plugin name on the form", () => {
-    const form = create({ pluginName: "zod" });
-    expect(form.pluginName).toBe("zod");
+    const form = create({ pluginName: "arktype" });
+    expect(form.pluginName).toBe("arktype");
   });
 
   // --- text ---
   it("should validate required text", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
-      id: "name", type: "text", validation: { required: true },
+    const form = addNode(create({ pluginName: "arktype" }), {
+      id: "name",
+      type: "text",
+      validation: { required: true },
     });
 
     expect(validate(form, { name: "" }).success).toBe(false);
@@ -29,7 +38,7 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional text (null/undefined OK)", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "bio", type: "text",
     });
 
@@ -39,7 +48,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce text min/max", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "msg",
       type: "text",
       validation: { min: 2, max: 5 },
@@ -53,7 +62,7 @@ describe("zodPlugin", () => {
 
   // --- number ---
   it("should validate required number", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "age",
       type: "number",
       validation: { required: true },
@@ -66,7 +75,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce number min/max", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "score",
       type: "number",
       validation: { min: 0, max: 100 },
@@ -78,8 +87,20 @@ describe("zodPlugin", () => {
     expect(validate(form, { score: 101 }).success).toBe(false);
   });
 
+  it("should allow number min=0 with no max", () => {
+    const form = addNode(create({ pluginName: "arktype" }), {
+      id: "n",
+      type: "number",
+      validation: { min: 0 },
+    });
+
+    expect(validate(form, { n: 0 }).success).toBe(true);
+    expect(validate(form, { n: -1 }).success).toBe(false);
+    expect(validate(form, { n: 1e6 }).success).toBe(true);
+  });
+
   it("should validate optional number", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "opt", type: "number",
     });
 
@@ -90,7 +111,7 @@ describe("zodPlugin", () => {
 
   // --- select ---
   it("should validate required select", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "color",
       type: "select",
       options: ["Rosso", "Verde"],
@@ -103,7 +124,7 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional select", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "size",
       type: "select",
       options: ["Piccolo"],
@@ -116,7 +137,7 @@ describe("zodPlugin", () => {
 
   // --- checkbox ---
   it("should validate required checkbox", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "agree",
       type: "checkbox",
       validation: { required: true },
@@ -129,17 +150,19 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional checkbox", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "newsletter", type: "checkbox",
     });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
     expect(validate(form, { newsletter: undefined }).success).toBe(true);
+    expect(validate(form, { newsletter: false }).success).toBe(true);
+    expect(validate(form, { newsletter: true }).success).toBe(true);
   });
 
   // --- radio ---
   it("should validate required radio", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "gender",
       type: "radio",
       validation: { required: true },
@@ -152,7 +175,7 @@ describe("zodPlugin", () => {
 
   // --- textarea ---
   it("should validate required textarea", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "bio",
       type: "textarea",
       validation: { required: true },
@@ -163,7 +186,7 @@ describe("zodPlugin", () => {
   });
 
   it("should enforce textarea min/max", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "desc",
       type: "textarea",
       validation: { min: 10, max: 100 },
@@ -175,7 +198,7 @@ describe("zodPlugin", () => {
 
   // --- file ---
   it("should validate required file as object", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "resume",
       type: "file",
       validation: { required: true },
@@ -186,7 +209,7 @@ describe("zodPlugin", () => {
   });
 
   it("should validate optional file", () => {
-    const form = addNode(create({ pluginName: "zod" }), {
+    const form = addNode(create({ pluginName: "arktype" }), {
       id: "avatar", type: "file",
     });
 
@@ -196,7 +219,7 @@ describe("zodPlugin", () => {
 
   // --- multiple fields ---
   it("should validate multiple fields together", () => {
-    let form = create({ pluginName: "zod" });
+    let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
       type: "text",
@@ -213,7 +236,7 @@ describe("zodPlugin", () => {
   });
 
   it("should fail when one of multiple fields is invalid", () => {
-    let form = create({ pluginName: "zod" });
+    let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
       type: "text",
@@ -230,14 +253,13 @@ describe("zodPlugin", () => {
 
   // --- mergeFields (plugin-specific) ---
   it("should produce an empty object schema when no fields are visible", () => {
-    const form = create({ pluginName: "zod" });
-    // No fields means mergeFields gets an empty record
+    const form = create({ pluginName: "arktype" });
     const result = validate(form, {});
     expect(result.success).toBe(true);
   });
 
   it("should compose multiple field schemas into one object schema", () => {
-    let form = create({ pluginName: "zod" });
+    let form = create({ pluginName: "arktype" });
     form = addNode(form, { id: "a", type: "text", validation: { required: true } });
     form = addNode(form, { id: "b", type: "number", validation: { min: 0 } });
 
@@ -246,29 +268,11 @@ describe("zodPlugin", () => {
     expect(result.data).toEqual({ a: "hi", b: 5 });
   });
 
-  // --- evaluateCondition (plugin-specific translation layer) ---
-  it("evaluateCondition: 'true' means truthy (non-null, non-undefined, non-false)", () => {
+  // --- evaluateCondition (plugin-specific: arktype DSL) ---
+  it("evaluateCondition: plain type name string matches values of that type", () => {
     const form = addDependency(
       create({
-        pluginName: "zod",
-        fields: {
-          parent: { id: "parent", type: "checkbox" },
-          child: { id: "child", type: "text", validation: { required: true } },
-        },
-      }),
-      { source: "parent", target: "child", condition: "true" },
-    );
-
-    expect(validate(form, { parent: null }).success).toBe(true);
-    expect(validate(form, { parent: false }).success).toBe(true);
-    expect(validate(form, { parent: true }).success).toBe(false);  // child required
-    expect(validate(form, { parent: true, child: "x" }).success).toBe(true);
-  });
-
-  it("evaluateCondition: 'string' matches string values", () => {
-    const form = addDependency(
-      create({
-        pluginName: "zod",
+        pluginName: "arktype",
         fields: {
           parent: { id: "parent", type: "text" },
           child: { id: "child", type: "text", validation: { required: true } },
@@ -277,110 +281,119 @@ describe("zodPlugin", () => {
       { source: "parent", target: "child", condition: "string" },
     );
 
-    expect(validate(form, { parent: null }).success).toBe(true);   // no parent → child hidden
-    expect(validate(form, { parent: "x" }).success).toBe(false);   // child visible, required, missing
+    expect(validate(form, { parent: null }).success).toBe(true);
+    expect(validate(form, { parent: "x" }).success).toBe(false);
     expect(validate(form, { parent: "x", child: "y" }).success).toBe(true);
   });
 
-  it("evaluateCondition: 'number' matches number values", () => {
+  it("evaluateCondition: 'true' matches truthy booleans", () => {
     const form = addDependency(
       create({
-        pluginName: "zod",
+        pluginName: "arktype",
+        fields: {
+          parent: { id: "parent", type: "checkbox" },
+          child: { id: "child", type: "text", validation: { required: true } },
+        },
+      }),
+      { source: "parent", target: "child", condition: "true" },
+    );
+
+    // arktype's "true" only passes when value === true
+    expect(validate(form, { parent: null }).success).toBe(true);
+    expect(validate(form, { parent: false }).success).toBe(true);
+    expect(validate(form, { parent: true }).success).toBe(false);
+    expect(validate(form, { parent: true, child: "x" }).success).toBe(true);
+  });
+
+  it("evaluateCondition: 'unknown' always matches", () => {
+    const form = addDependency(
+      create({
+        pluginName: "arktype",
+        fields: {
+          a: { id: "a", type: "text" },
+          b: { id: "b", type: "text", validation: { required: true } },
+        },
+      }),
+      { source: "a", target: "b", condition: "unknown" },
+    );
+
+    expect(validate(form, { a: null }).success).toBe(false);
+    expect(validate(form, { a: null, b: "x" }).success).toBe(true);
+  });
+
+  it("evaluateCondition: arktype union DSL (string | number)", () => {
+    const form = addDependency(
+      create({
+        pluginName: "arktype",
+        // Use a number field for parent so 42 passes field validation
+        fields: {
+          parent: { id: "parent", type: "number" },
+          child: { id: "child", type: "text", validation: { required: true } },
+        },
+      }),
+      { source: "parent", target: "child", condition: "string | number" },
+    );
+
+    expect(validate(form, { parent: null }).success).toBe(true);   // null not in union → child hidden
+    expect(validate(form, { parent: 42 }).success).toBe(false);    // number matches → child visible but missing
+    expect(validate(form, { parent: 42, child: "z" }).success).toBe(true);
+  });
+
+  it("evaluateCondition: number constraint DSL (number >= 18)", () => {
+    const form = addDependency(
+      create({
+        pluginName: "arktype",
         fields: {
           age: { id: "age", type: "number" },
           note: { id: "note", type: "text", validation: { required: true } },
         },
       }),
-      { source: "age", target: "note", condition: "number" },
+      { source: "age", target: "note", condition: "number >= 18" },
     );
 
-    expect(validate(form, { age: null }).success).toBe(true);       // not a number → note hidden
-    expect(validate(form, { age: 25 }).success).toBe(false);        // note visible, required, missing
+    expect(validate(form, { age: null }).success).toBe(true);
+    expect(validate(form, { age: 15 }).success).toBe(true);        // 15 doesn't match, so child hidden
+    expect(validate(form, { age: 18 }).success).toBe(false);       // 18 matches, child required but missing
+    expect(validate(form, { age: 18, note: "adult" }).success).toBe(true);
     expect(validate(form, { age: 25, note: "ok" }).success).toBe(true);
   });
 
-  it("evaluateCondition: 'boolean' matches boolean values", () => {
+  it("evaluateCondition: exact value via '$eq'", () => {
     const form = addDependency(
       create({
-        pluginName: "zod",
+        pluginName: "arktype",
         fields: {
-          toggle: { id: "toggle", type: "checkbox" },
-          extra: { id: "extra", type: "text", validation: { required: true } },
+          answer: { id: "answer", type: "text" },
+          prize: { id: "prize", type: "text", validation: { required: true } },
         },
       }),
-      { source: "toggle", target: "extra", condition: "boolean" },
+      { source: "answer", target: "prize", condition: "'yes'" },
     );
 
-    expect(validate(form, { toggle: null }).success).toBe(true);     // not boolean → extra hidden
-    expect(validate(form, { toggle: true }).success).toBe(false);    // extra visible, required, missing
-    expect(validate(form, { toggle: false }).success).toBe(false);
-    expect(validate(form, { toggle: true, extra: "yes" }).success).toBe(true);
+    expect(validate(form, { answer: null }).success).toBe(true);
+    expect(validate(form, { answer: "no" }).success).toBe(true);
+    expect(validate(form, { answer: "yes" }).success).toBe(false);
+    expect(validate(form, { answer: "yes", prize: "gold" }).success).toBe(true);
   });
 
-  it("evaluateCondition: 'object' matches non-null objects", () => {
+  it("evaluateCondition: union with exact values", () => {
     const form = addDependency(
       create({
-        pluginName: "zod",
+        pluginName: "arktype",
         fields: {
-          file: { id: "file", type: "file" },
-          desc: { id: "desc", type: "text", validation: { required: true } },
+          color: { id: "color", type: "select", options: ["R", "G", "B"] },
+          detail: { id: "detail", type: "text", validation: { required: true } },
         },
       }),
-      { source: "file", target: "desc", condition: "object" },
+      { source: "color", target: "detail", condition: "0 | 1" },
     );
 
-    expect(validate(form, { file: null }).success).toBe(true);
-    expect(validate(form, { file: { name: "x.pdf" } }).success).toBe(false);
-    expect(validate(form, { file: { name: "x.pdf" }, desc: "A file" }).success).toBe(true);
-  });
-
-  it("evaluateCondition: 'any' always shows dependent field", () => {
-    const form = addDependency(
-      create({
-        pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
-        },
-      }),
-      { source: "a", target: "b", condition: "any" },
-    );
-
-    // b is always visible regardless of a's value
-    expect(validate(form, { a: null }).success).toBe(false);
-    expect(validate(form, { a: null, b: "x" }).success).toBe(true);
-  });
-
-  it("evaluateCondition: unknown condition string falls back to visible", () => {
-    const form = addDependency(
-      create({
-        pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
-        },
-      }),
-      // "$eq(42)" is arktype DSL — zod plugin can't translate it, falls back to visible
-      { source: "a", target: "b", condition: "$eq(42)" },
-    );
-
-    expect(validate(form, { a: null }).success).toBe(false);
-    expect(validate(form, { a: null, b: "x" }).success).toBe(true);
-  });
-
-  it("evaluateCondition: non-string condition falls back to visible", () => {
-    const form = addDependency(
-      create({
-        pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
-        },
-      }),
-      { source: "a", target: "b", condition: 42 },
-    );
-
-    expect(validate(form, { a: null }).success).toBe(false);
-    expect(validate(form, { a: null, b: "x" }).success).toBe(true);
+    // select index 0 or 1 → detail visible; index 2 → hidden
+    expect(validate(form, { color: null }).success).toBe(true);
+    expect(validate(form, { color: 0 }).success).toBe(false);
+    expect(validate(form, { color: 0, detail: "red" }).success).toBe(true);
+    expect(validate(form, { color: 1 }).success).toBe(false);
+    expect(validate(form, { color: 1, detail: "green" }).success).toBe(true);
+    expect(validate(form, { color: 2 }).success).toBe(true);       // condition doesn't match, child hidden
   });
 });
