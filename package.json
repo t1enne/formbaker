@@ -2,7 +2,8 @@
   "private": true,
   "workspaces": [
     "packages/formbaker",
-    "packages/formbaker-plugins"
+    "packages/formbaker-plugins",
+    "packages/formbaker-integrations"
   ],
   "scripts": {
     "test": "vitest run",

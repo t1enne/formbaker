@@ -9,11 +9,10 @@ export {
   validate,
   clearForm,
   getSchema,
-  formbakerResolver,
   getSortedNodes,
   getOrderingMap,
   moveNode,
   registerPlugin,
 } from "./src/engine";
 
-export type { FormbakerPlugin, FormbakerField } from "./src/types";
+export type { FormbakerPlugin, FormbakerField, Formbaker, FormbakerValidation, PlainObject, FormbakerDependency, FormbakerSection, } from "./src/types";
