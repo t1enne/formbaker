@@ -23,7 +23,8 @@ describe("arktypePlugin", () => {
   it("should validate required text", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
 
@@ -34,7 +35,8 @@ describe("arktypePlugin", () => {
   it("should validate optional text (null/undefined OK)", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "bio",
-      type: "text",
+      type: "field",
+      fieldType: "text",
     });
 
     expect(validate(form, { bio: null }).success).toBe(true);
@@ -45,7 +47,8 @@ describe("arktypePlugin", () => {
   it("should enforce text min/max", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "msg",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { min: 2, max: 5 },
     });
 
@@ -59,7 +62,8 @@ describe("arktypePlugin", () => {
   it("should validate required number", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { required: true },
     });
 
@@ -72,7 +76,8 @@ describe("arktypePlugin", () => {
   it("should enforce number min/max", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "score",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 0, max: 100 },
     });
 
@@ -85,7 +90,8 @@ describe("arktypePlugin", () => {
   it("should allow number min=0 with no max", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "n",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 0 },
     });
 
@@ -97,7 +103,8 @@ describe("arktypePlugin", () => {
   it("should validate optional number", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "opt",
-      type: "number",
+      type: "field",
+      fieldType: "number",
     });
 
     expect(validate(form, { opt: null }).success).toBe(true);
@@ -109,7 +116,8 @@ describe("arktypePlugin", () => {
   it("should validate required select", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "color",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["Rosso", "Verde"],
       validation: { required: true },
     });
@@ -122,7 +130,8 @@ describe("arktypePlugin", () => {
   it("should validate optional select", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "size",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["Piccolo"],
     });
 
@@ -135,7 +144,8 @@ describe("arktypePlugin", () => {
   it("should validate required checkbox", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "agree",
-      type: "checkbox",
+      type: "field",
+      fieldType: "checkbox",
       validation: { required: true },
     });
 
@@ -148,7 +158,8 @@ describe("arktypePlugin", () => {
   it("should validate optional checkbox", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "newsletter",
-      type: "checkbox",
+      type: "field",
+      fieldType: "checkbox",
     });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
@@ -161,7 +172,8 @@ describe("arktypePlugin", () => {
   it("should validate required radio", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "gender",
-      type: "radio",
+      type: "field",
+      fieldType: "radio",
       validation: { required: true },
     });
 
@@ -174,7 +186,8 @@ describe("arktypePlugin", () => {
   it("should validate required textarea", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "bio",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { required: true },
     });
 
@@ -185,7 +198,8 @@ describe("arktypePlugin", () => {
   it("should enforce textarea min/max", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "desc",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { min: 10, max: 100 },
     });
 
@@ -197,7 +211,8 @@ describe("arktypePlugin", () => {
   it("should validate required file as object", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "resume",
-      type: "file",
+      type: "field",
+      fieldType: "file",
       validation: { required: true },
     });
 
@@ -208,7 +223,8 @@ describe("arktypePlugin", () => {
   it("should validate optional file", () => {
     const form = addNode(create({ pluginName: "arktype" }), {
       id: "avatar",
-      type: "file",
+      type: "field",
+      fieldType: "file",
     });
 
     expect(validate(form, { avatar: null }).success).toBe(true);
@@ -220,12 +236,14 @@ describe("arktypePlugin", () => {
     let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18 },
     });
 
@@ -237,12 +255,14 @@ describe("arktypePlugin", () => {
     let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18 },
     });
 
@@ -258,8 +278,8 @@ describe("arktypePlugin", () => {
 
   it("should compose multiple field schemas into one object schema", () => {
     let form = create({ pluginName: "arktype" });
-    form = addNode(form, { id: "a", type: "text", validation: { required: true } });
-    form = addNode(form, { id: "b", type: "number", validation: { min: 0 } });
+    form = addNode(form, { id: "a", type: "field", fieldType: "text", validation: { required: true } });
+    form = addNode(form, { id: "b", type: "field", fieldType: "number", validation: { min: 0 } });
 
     const result = validate(form, { a: "hi", b: 5 });
     expect(result.success).toBe(true);
@@ -271,9 +291,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          parent: { id: "parent", type: "text" },
-          child: { id: "child", type: "text", validation: { required: true } },
+        nodes: {
+          parent: { id: "parent", type: "field", fieldType: "text" },
+          child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "parent", target: "child", condition: "string" },
@@ -288,9 +308,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          parent: { id: "parent", type: "checkbox" },
-          child: { id: "child", type: "text", validation: { required: true } },
+        nodes: {
+          parent: { id: "parent", type: "field", fieldType: "checkbox" },
+          child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "parent", target: "child", condition: "true" },
@@ -307,9 +327,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
+        nodes: {
+          a: { id: "a", type: "field", fieldType: "text" },
+          b: { id: "b", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "a", target: "b", condition: "unknown" },
@@ -323,10 +343,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        // Use a number field for parent so 42 passes field validation
-        fields: {
-          parent: { id: "parent", type: "number" },
-          child: { id: "child", type: "text", validation: { required: true } },
+        nodes: {
+          parent: { id: "parent", type: "field", fieldType: "number" },
+          child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "parent", target: "child", condition: "string | number" },
@@ -341,9 +360,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          age: { id: "age", type: "number" },
-          note: { id: "note", type: "text", validation: { required: true } },
+        nodes: {
+          age: { id: "age", type: "field", fieldType: "number" },
+          note: { id: "note", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "age", target: "note", condition: "number >= 18" },
@@ -360,9 +379,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          answer: { id: "answer", type: "text" },
-          prize: { id: "prize", type: "text", validation: { required: true } },
+        nodes: {
+          answer: { id: "answer", type: "field", fieldType: "text" },
+          prize: { id: "prize", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "answer", target: "prize", condition: "'yes'" },
@@ -378,9 +397,9 @@ describe("arktypePlugin", () => {
     const form = addDependency(
       create({
         pluginName: "arktype",
-        fields: {
-          color: { id: "color", type: "select", options: ["R", "G", "B"] },
-          detail: { id: "detail", type: "text", validation: { required: true } },
+        nodes: {
+          color: { id: "color", type: "field", fieldType: "select", options: ["R", "G", "B"] },
+          detail: { id: "detail", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "color", target: "detail", condition: "0 | 1" },

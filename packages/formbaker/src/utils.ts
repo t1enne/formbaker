@@ -1,28 +1,49 @@
-import { Formbaker, FormbakerDependency, FormbakerField, FormbakerSection } from "./types";
+import { Formbaker, FormbakerDependency, FormbakerNode } from "./types";
 
 /** Signature for a plugin's dependency evaluation. */
 type EvaluateCondition = (condition: unknown, value: unknown) => boolean;
 
 /**
- * This works assuming that relationships between fields are within a section
- * or field -> section.
- * Won't work if we attempt to connect a field from one section to a field
- * in another section.
- */
-
-/**
- * Checks if a node should be included based on its backward dependencies.
+ * Checks if a node should be included based on:
+ * 1. Its own backward dependencies.
+ * 2. The visibility of all ancestor sections (via parentId chain).
+ *
  * Dependency conditions are evaluated via the plugin's evaluateCondition callback.
  */
 const shouldInclude = (
   form: Formbaker,
-  node: FormbakerField | FormbakerSection,
+  node: FormbakerNode,
   value: Record<string, unknown> | undefined,
   evaluateCondition?: EvaluateCondition,
-) => {
+): boolean => {
   if (!node) {
     return false;
   }
+
+  // Check visibility of each ancestor in the parentId chain.
+  // If any ancestor section is hidden, this node is hidden.
+  const checkAncestors = (n: FormbakerNode): boolean => {
+    if (!n.parentId) return true;
+    const parent = form.nodes[n.parentId];
+    if (!parent) return true; // parent missing — treat as visible
+    // Check the parent's own backward deps
+    if (!checkNodeDeps(form, parent, value, evaluateCondition)) return false;
+    // Recurse further up
+    return checkAncestors(parent);
+  };
+
+  return checkNodeDeps(form, node, value, evaluateCondition) && checkAncestors(node);
+};
+
+/**
+ * Check a single node's own backward dependencies.
+ */
+const checkNodeDeps = (
+  form: Formbaker,
+  node: FormbakerNode,
+  value: Record<string, unknown> | undefined,
+  evaluateCondition?: EvaluateCondition,
+): boolean => {
   const deps = form.dependencies.backward[node.id];
   if (!deps || deps.length === 0) {
     return true;
@@ -88,46 +109,17 @@ function invariant(condition: unknown, message?: string): asserts condition {
   }
 }
 
-/** Checks if value is strictly undefined. */
-function isUndefined(x: unknown): x is undefined {
-  return x === void 0;
-}
-
-/** Creates a new object with specified keys omitted. */
-function omit<T extends Record<string, any>, K extends keyof T>(
+/** Creates a new object with specified keys omitted (pure — no delete mutations). */
+const omit = <T extends Record<string, unknown>, K extends string>(
   obj: T,
   keys: readonly K[],
-): Omit<T, K> {
-  const result: Record<string, unknown> = { ...obj };
-  for (const key of keys) {
-    delete result[key as string];
-  }
-  return result as unknown as Omit<T, K>;
-}
-
-/**
- * Sorts an array by iteratee functions or property keys (ascending).
- * Returns a new array; does not mutate the original.
- */
-function sortBy<T>(arr: T[], criteria: Array<((item: T) => unknown) | keyof T>): T[] {
-  return (arr.slice() as T[]).toSorted((a: T, b: T) => {
-    for (let i = 0; i < criteria.length; i++) {
-      const criterion = criteria[i]!;
-      const fn: (item: T) => unknown =
-        typeof criterion === "function"
-          ? (criterion as (item: T) => unknown)
-          : (item: T) => item[criterion as keyof T];
-      const va = fn(a);
-      const vb = fn(b);
-      if (va != null && vb != null) {
-        if (va < vb) return -1;
-        if (va > vb) return 1;
-      }
-    }
-    return 0;
-  });
-}
+): Omit<T, K> => {
+  const keySet = new Set<string>(keys);
+  return Object.fromEntries(
+    Object.entries(obj).filter(([k]) => !keySet.has(k)),
+  ) as Omit<T, K>;
+};
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);
 
-export { shouldInclude, isEqualDepencency, invariant, isUndefined, omit, sortBy, isNumber };
+export { shouldInclude, isEqualDepencency, invariant, omit, isNumber };

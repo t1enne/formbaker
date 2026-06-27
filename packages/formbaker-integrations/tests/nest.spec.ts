@@ -8,7 +8,7 @@ import { formbakerToClassValidator } from "../src/nest";
 describe("nest class-validator code generation", () => {
   it("should generate imports", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "text", validation: { required: true } });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
     const code = formbakerToClassValidator(form, { className: "TestDto" });
 
     expect(code).toContain("import {");
@@ -28,7 +28,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true, min: 2, max: 50 },
     });
 
@@ -45,7 +46,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { required: true, min: 18, max: 120 },
     });
 
@@ -62,7 +64,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "bio",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { min: 10 },
     });
 
@@ -79,7 +82,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "agree",
-      type: "checkbox",
+      type: "field",
+      fieldType: "checkbox",
       validation: { required: true },
     });
 
@@ -93,7 +97,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "color",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["Red", "Green", "Blue"],
       validation: { required: true },
     });
@@ -109,7 +114,8 @@ describe("nest class-validator code generation", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "resume",
-      type: "file",
+      type: "field",
+      fieldType: "file",
       validation: { required: true },
     });
 
@@ -121,7 +127,7 @@ describe("nest class-validator code generation", () => {
 
   it("should omit imports when includeImports is false", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "text", validation: { required: true } });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
     const code = formbakerToClassValidator(form, {
       className: "Dto",
       includeImports: false,
@@ -132,7 +138,7 @@ describe("nest class-validator code generation", () => {
 
   it("should apply class-level decorators", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "text", validation: { required: true } });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
     const code = formbakerToClassValidator(form, {
       className: "Dto",
       classDecorators: ["@ApiProperty()"],

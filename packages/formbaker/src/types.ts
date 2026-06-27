@@ -57,11 +57,40 @@ export type FormbakerPlugin = {
 /** A JSON-safe identifier for the validation plugin. */
 export type FormbakerPluginName = string;
 
+// --- Unified node types ---
+
+export interface FormbakerField {
+  id: string;
+  type: "field";
+  parentId?: string;
+  order?: number;
+  label?: string;
+  description?: string;
+  validation?: FormbakerValidation;
+  meta?: Record<string, unknown>;
+  fieldType: keyof FormbakerTypeMap;
+  /** Options for select fields. Present when fieldType === "select". */
+  options?: string[];
+  defaultValue?: unknown;
+}
+
+export interface FormbakerSection {
+  id: string;
+  type: "section";
+  parentId?: string;
+  order?: number;
+  label?: string;
+  description?: string;
+  meta?: Record<string, unknown>;
+}
+
+export type FormbakerNode = FormbakerField | FormbakerSection;
+
 export interface Formbaker<T extends PlainObject = {}> {
   id: string;
   label: string;
-  fields: Record<string, FormbakerField & T>;
-  sections: Record<string, FormbakerSection>;
+  /** All nodes (fields and sections) in one flat map. */
+  nodes: Record<string, FormbakerNode & Omit<T, keyof FormbakerNode>>;
   dependencies: {
     forward: { [x: string]: FormbakerDependency[] };
     backward: { [x: string]: FormbakerDependency[] };
@@ -70,46 +99,15 @@ export interface Formbaker<T extends PlainObject = {}> {
   pluginName: FormbakerPluginName;
 }
 
-export interface FormbakerSection {
-  id: string;
-  label?: string;
-  description?: string;
-  order?: number;
-}
-
-export interface BaseField {
-  id: string;
-  label?: string;
-  description?: string;
-  type: keyof FormbakerTypeMap;
-  validation?: FormbakerValidation;
-  order?: number;
-  /** Arbitrary consumer-defined metadata. */
-  meta?: Record<string, unknown>;
-}
-
-export type FormbakerField<T extends keyof FormbakerTypeMap = "text"> = {
-  [K in keyof FormbakerTypeMap]: FormbakerTypeMap[T] & BaseField;
-}[keyof FormbakerTypeMap];
-
 export type FormResult<T> = {
   success: boolean;
   data: T | string;
   schema: any;
 };
 
-export interface PositionedSection {
-  type: "_section";
-  id: string;
-  section?: FormbakerSection;
-  position: { x: number; y: number };
-}
-
-export interface PositionedField<T extends PlainObject> {
-  type: "_node";
+export interface PositionedNode<T extends PlainObject = {}> {
+  type: "_node" | "_section";
   id: string;
   position: { x: number; y: number };
-  node?: FormbakerField & T;
+  node?: FormbakerNode & T;
 }
-
-export type PositionedNode<T extends PlainObject = {}> = PositionedField<T> | PositionedSection;

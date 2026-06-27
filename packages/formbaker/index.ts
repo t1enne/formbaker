@@ -2,10 +2,8 @@ export {
   create,
   addNode,
   addDependency,
-  addSection,
   removeDependency,
   removeNode,
-  removeSection,
   validate,
   clearForm,
   getSchema,
@@ -18,9 +16,11 @@ export {
 export type {
   FormbakerPlugin,
   FormbakerField,
+  FormbakerSection,
+  FormbakerNode,
   Formbaker,
   FormbakerValidation,
   PlainObject,
   FormbakerDependency,
-  FormbakerSection,
+  PositionedNode,
 } from "./src/types";

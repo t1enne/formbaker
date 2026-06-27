@@ -10,7 +10,7 @@
  * import { formbakerToFormGroup } from "@formbaker/integrations/angular";
  * import { Validators } from "@angular/forms";
  *
- * const form = create({ pluginName: "zod", fields: { name: { id: "name", type: "text", validation: { required: true } } } });
+ * const form = create({ pluginName: "zod", nodes: { name: { id: "name", type: "field", fieldType: "text", validation: { required: true } } } });
  * const fb = inject(FormBuilder);
  * const group = formbakerToFormGroup(form, fb, Validators);
  * ```
@@ -51,11 +51,17 @@ export interface FormbakerValidators {
   max: (max: number, message?: string) => ValidatorFn;
 }
 
+// --- Helper to get field nodes from the unified nodes map ---
+
+const getFields = (form: Formbaker): FormbakerField[] => {
+  return Object.values(form.nodes).filter((n): n is FormbakerField => n.type === "field");
+};
+
 // --- Validator builders ---
 
 const buildValidators = (
   validation: FormbakerValidation | undefined,
-  type: FormbakerField["type"],
+  fieldType: FormbakerField["fieldType"],
   V: FormbakerValidators,
 ): ValidatorFn[] => {
   const validators: ValidatorFn[] = [];
@@ -68,17 +74,17 @@ const buildValidators = (
   }
 
   if (min !== undefined) {
-    if (type === "text" || type === "textarea") {
+    if (fieldType === "text" || fieldType === "textarea") {
       validators.push(V.minLength(min as number, validation.min?.message));
-    } else if (type === "number") {
+    } else if (fieldType === "number") {
       validators.push(V.min(min as number, validation.min?.message));
     }
   }
 
   if (max !== undefined) {
-    if (type === "text" || type === "textarea") {
+    if (fieldType === "text" || fieldType === "textarea") {
       validators.push(V.maxLength(max as number, validation.max?.message));
-    } else if (type === "number") {
+    } else if (fieldType === "number") {
       validators.push(V.max(max as number, validation.max?.message));
     }
   }
@@ -89,11 +95,11 @@ const buildValidators = (
 // --- Default value extraction ---
 
 const getDefaultValue = (field: FormbakerField): unknown => {
-  if (field.type === "text" || field.type === "textarea") return "";
-  if (field.type === "number") return null;
-  if (field.type === "checkbox" || field.type === "radio") return false;
-  if (field.type === "select") return null;
-  if (field.type === "file") return null;
+  if (field.fieldType === "text" || field.fieldType === "textarea") return "";
+  if (field.fieldType === "number") return null;
+  if (field.fieldType === "checkbox" || field.fieldType === "radio") return false;
+  if (field.fieldType === "select") return null;
+  if (field.fieldType === "file") return null;
   return "";
 };
 
@@ -119,11 +125,10 @@ export const formbakerToFormGroup = (
 
   const controls: Record<string, { value: unknown }> = {};
 
-  for (const id in form.fields) {
-    const field = form.fields[id]!;
+  for (const field of getFields(form)) {
     const defaultValue = getDefaultValue(field);
-    const v = buildValidators(field.validation, field.type, validators);
-    controls[id] = fb.control(defaultValue, v);
+    const v = buildValidators(field.validation, field.fieldType, validators);
+    controls[field.id] = fb.control(defaultValue, v);
   }
 
   return fb.group(controls);
@@ -155,23 +160,22 @@ export const rebuildFormGroup = (
   validators: FormbakerValidators,
   _opts: FormbakerFormGroupOptions = {},
 ): void => {
-  const desired = new Set(Object.keys(form.fields));
+  const fieldIds = new Set(getFields(form).map((f) => f.id));
   const current = new Set(Object.keys(group.controls));
 
   // Remove controls that are no longer in the form
   for (const name of current) {
-    if (!desired.has(name)) {
+    if (!fieldIds.has(name)) {
       group.removeControl(name);
     }
   }
 
   // Add or update controls for fields in the form
-  for (const id in form.fields) {
-    const field = form.fields[id]!;
-    if (group.get(id)) continue; // already present — skip to preserve value
+  for (const field of getFields(form)) {
+    if (group.get(field.id)) continue; // already present — skip to preserve value
 
     const defaultValue = getDefaultValue(field);
-    const v = buildValidators(field.validation, field.type, validators);
-    group.addControl(id, fb.control(defaultValue, v));
+    const v = buildValidators(field.validation, field.fieldType, validators);
+    group.addControl(field.id, fb.control(defaultValue, v));
   }
 };

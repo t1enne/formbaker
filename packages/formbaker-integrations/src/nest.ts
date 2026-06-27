@@ -8,10 +8,10 @@
  *
  * @example
  * ```ts
- * const form = create({ pluginName: "zod", fields: {
- *   name: { id: "name", type: "text", validation: { required: true, min: 2, max: 50 } },
- *   age:  { id: "age",  type: "number", validation: { required: true, min: 18, max: 120 } },
- *   bio:  { id: "bio",  type: "textarea", validation: { min: 10 } },
+ * const form = create({ pluginName: "zod", nodes: {
+ *   name: { id: "name", type: "field", fieldType: "text", validation: { required: true, min: 2, max: 50 } },
+ *   age:  { id: "age",  type: "field", fieldType: "number", validation: { required: true, min: 18, max: 120 } },
+ *   bio:  { id: "bio",  type: "field", fieldType: "textarea", validation: { min: 10 } },
  * } });
  *
  * const code = formbakerToClassValidator(form, { className: "CreateUserDto" });
@@ -19,6 +19,12 @@
  * ```
  */
 import type { Formbaker, FormbakerField } from "formbaker";
+
+// --- Helper to get field nodes from the unified nodes map ---
+
+const getFields = (form: Formbaker): FormbakerField[] => {
+  return Object.values(form.nodes).filter((n): n is FormbakerField => n.type === "field");
+};
 
 // --- Options ---
 
@@ -44,7 +50,7 @@ const mapField = (field: FormbakerField): DecoratorMapping => {
   const isOptional = !validation?.required;
 
   // Type-specific decorators
-  switch (field.type) {
+  switch (field.fieldType) {
     case "text":
     case "textarea":
       decorators.push("@IsString()");
@@ -69,10 +75,7 @@ const mapField = (field: FormbakerField): DecoratorMapping => {
       decorators.push("@IsBoolean()");
       break;
     case "select": {
-      // ponytail: FormbakerField<"select"> doesn't correctly narrow the
-      // mapped type (core bug — FormbakerTypeMap[K] uses T instead of K).
-      // Access options via a type-safe property check instead.
-      const options = "options" in field ? (field as { options: string[] }).options : [];
+      const options = field.options ?? [];
       decorators.push("@IsNumber()");
       decorators.push(`@IsIn([${options.map((_, i) => i).join(", ")}])`);
       break;
@@ -85,7 +88,7 @@ const mapField = (field: FormbakerField): DecoratorMapping => {
   // Required / Optional
   if (isOptional) {
     decorators.push("@IsOptional()");
-  } else if (field.type === "text" || field.type === "textarea") {
+  } else if (field.fieldType === "text" || field.fieldType === "textarea") {
     decorators.push("@IsNotEmpty()");
   } else {
     decorators.push("@IsDefined()");
@@ -98,10 +101,10 @@ const mapField = (field: FormbakerField): DecoratorMapping => {
 };
 
 const fieldTypeToTs = (field: FormbakerField): string => {
-  if (field.type === "select") return "number";
-  if (field.type === "checkbox" || field.type === "radio") return "boolean";
-  if (field.type === "number") return "number";
-  if (field.type === "file") return "Record<string, unknown>";
+  if (field.fieldType === "select") return "number";
+  if (field.fieldType === "checkbox" || field.fieldType === "radio") return "boolean";
+  if (field.fieldType === "number") return "number";
+  if (field.fieldType === "file") return "Record<string, unknown>";
   return "string";
 };
 
@@ -111,7 +114,7 @@ const fieldTypeToTs = (field: FormbakerField): string => {
  * Generate a class-validator decorated DTO class source code from a Formbaker
  * form definition.
  *
- * @param form - A Formbaker form definition (fields only — sections and dependencies are ignored).
+ * @param form - A Formbaker form definition (sections and dependencies are ignored).
  * @param opts - Options for code generation.
  * @returns TypeScript source code string.
  *
@@ -133,9 +136,9 @@ export const formbakerToClassValidator = (
   // doesn't have dead imports.
   const usedDecorators = new Set<string>();
   const fieldMappings: Record<string, DecoratorMapping> = {};
-  for (const id in form.fields) {
-    const mapping = mapField(form.fields[id]!);
-    fieldMappings[id] = mapping;
+  for (const field of getFields(form)) {
+    const mapping = mapField(field);
+    fieldMappings[field.id] = mapping;
     for (const dec of mapping.decorators) {
       usedDecorators.add(dec.replace(/^@(\w+).*$/, "$1"));
     }
@@ -152,13 +155,13 @@ export const formbakerToClassValidator = (
   }
   lines.push(`export class ${className} {`);
 
-  for (const id in form.fields) {
-    const { decorators, tsType } = fieldMappings[id]!;
+  for (const field of getFields(form)) {
+    const { decorators, tsType } = fieldMappings[field.id]!;
 
     for (const dec of decorators) {
       lines.push(`  ${dec}`);
     }
-    lines.push(`  ${id}!: ${tsType};`);
+    lines.push(`  ${field.id}!: ${tsType};`);
     lines.push("");
   }
 

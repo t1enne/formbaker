@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import {
   addNode,
-  addSection,
   create,
   getSortedNodes,
   getOrderingMap,
@@ -17,10 +16,10 @@ describe("getOrderingMap", () => {
   it("numbers flat questions sequentially (no sections)", () => {
     const form = create({
       pluginName: "test",
-      fields: {
-        b: { id: "b", type: "checkbox" },
-        c: { id: "c", type: "checkbox" },
-        a: { id: "a", type: "checkbox" },
+      nodes: {
+        b: { id: "b", type: "field", fieldType: "checkbox" },
+        c: { id: "c", type: "field", fieldType: "checkbox" },
+        a: { id: "a", type: "field", fieldType: "checkbox" },
       },
     });
 
@@ -32,11 +31,11 @@ describe("getOrderingMap", () => {
 
   it("numbers questions with sections: 1, 1.1, 1.2, 2, 2.1", () => {
     let form = create({ pluginName: "test" });
-    form = addSection(form, { id: "#s1", label: "Topic A" });
-    form = addNode(form, { id: "q1" });
-    form = addNode(form, { id: "q2" });
-    form = addSection(form, { id: "#s2", label: "Topic B" });
-    form = addNode(form, { id: "q3" });
+    form = addNode(form, { id: "#s1", type: "section", label: "Topic A" });
+    form = addNode(form, { id: "q1", type: "field", fieldType: "text" }, { parentId: "#s1" });
+    form = addNode(form, { id: "q2", type: "field", fieldType: "text" }, { parentId: "#s1" });
+    form = addNode(form, { id: "#s2", type: "section", label: "Topic B" });
+    form = addNode(form, { id: "q3", type: "field", fieldType: "text" }, { parentId: "#s2" });
 
     const lo = getOrderingMap(form);
     expect(lo.get("#s1")).toBe("1");
@@ -48,12 +47,12 @@ describe("getOrderingMap", () => {
 
   it("numbers questions with 3+ sections correctly", () => {
     let form = create({ pluginName: "test" });
-    form = addSection(form, { id: "#s1" });
-    form = addNode(form, { id: "q1" });
-    form = addSection(form, { id: "#s2" });
-    form = addNode(form, { id: "q2" });
-    form = addSection(form, { id: "#s3" });
-    form = addNode(form, { id: "q3" });
+    form = addNode(form, { id: "#s1", type: "section" });
+    form = addNode(form, { id: "q1", type: "field", fieldType: "text" }, { parentId: "#s1" });
+    form = addNode(form, { id: "#s2", type: "section" });
+    form = addNode(form, { id: "q2", type: "field", fieldType: "text" }, { parentId: "#s2" });
+    form = addNode(form, { id: "#s3", type: "section" });
+    form = addNode(form, { id: "q3", type: "field", fieldType: "text" }, { parentId: "#s3" });
 
     const lo = getOrderingMap(form);
     expect(lo.get("#s1")).toBe("1");
@@ -67,13 +66,13 @@ describe("getOrderingMap", () => {
   describe("getSortedNodes", () => {
     it("sorts fields by insertion order", () => {
       let form = create({ pluginName: "test" });
-      form = addNode(form, { id: "a" });
-      form = addNode(form, { id: "b" });
-      form = addNode(form, { id: "c" });
+      form = addNode(form, { id: "a", type: "field", fieldType: "text" });
+      form = addNode(form, { id: "b", type: "field", fieldType: "text" });
+      form = addNode(form, { id: "c", type: "field", fieldType: "text" });
 
-      expect(form.fields.a!.order).toBe(1);
-      expect(form.fields.b!.order).toBe(2);
-      expect(form.fields.c!.order).toBe(3);
+      expect(form.nodes.a!.order).toBe(1);
+      expect(form.nodes.b!.order).toBe(2);
+      expect(form.nodes.c!.order).toBe(3);
 
       const sorted = getSortedNodes(form);
       const fieldIds = sorted.map((n) => n.id);

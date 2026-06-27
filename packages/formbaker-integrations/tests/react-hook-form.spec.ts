@@ -19,12 +19,14 @@ describe("react-hook-form integration", () => {
     let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18 },
     });
 
@@ -52,7 +54,8 @@ describe("react-hook-form integration", () => {
     let form = create({ pluginName: "arktype" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
 
@@ -79,7 +82,8 @@ describe("react-hook-form integration", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "email",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true, min: 5 },
     });
 

@@ -36,8 +36,8 @@ const fakeValidators: FormbakerValidators = {
 describe("angular FormBuilder integration", () => {
   it("should produce a form group with one control per field", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "text" });
-    form = addNode(form, { id: "age", type: "number" });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text" });
+    form = addNode(form, { id: "age", type: "field", fieldType: "number" });
 
     const group = formbakerToFormGroup(form, fakeFb, fakeValidators);
 
@@ -46,12 +46,13 @@ describe("angular FormBuilder integration", () => {
 
   it("should set default values based on field type", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "a", type: "text" });
-    form = addNode(form, { id: "b", type: "number" });
-    form = addNode(form, { id: "c", type: "checkbox" });
+    form = addNode(form, { id: "a", type: "field", fieldType: "text" });
+    form = addNode(form, { id: "b", type: "field", fieldType: "number" });
+    form = addNode(form, { id: "c", type: "field", fieldType: "checkbox" });
     form = addNode(form, {
       id: "d",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["x", "y"],
     });
 
@@ -67,12 +68,14 @@ describe("angular FormBuilder integration", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18, max: 120 },
     });
 
@@ -100,7 +103,8 @@ describe("angular FormBuilder integration", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "bio",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { min: 10 },
     });
 
@@ -144,7 +148,7 @@ describe("angular FormBuilder integration", () => {
 
   it("rebuildFormGroup should add controls for new fields", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "text" });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text" });
 
     const ctrls: Record<string, { value: unknown }> = {
       name: fakeFb.control(""),
@@ -167,7 +171,7 @@ describe("angular FormBuilder integration", () => {
     };
 
     // Add a second field
-    form = addNode(form, { id: "email", type: "text" });
+    form = addNode(form, { id: "email", type: "field", fieldType: "text" });
 
     rebuildFormGroup(form, mutableGroup, fakeFb, fakeValidators);
 
@@ -196,7 +200,7 @@ describe("angular FormBuilder integration", () => {
 
     // Create a form without the "remove" field
     const form1 = create({ pluginName: "zod" });
-    const form = addNode(form1, { id: "keep", type: "text" });
+    const form = addNode(form1, { id: "keep", type: "field", fieldType: "text" });
 
     rebuildFormGroup(form, mutableGroup, fakeFb, fakeValidators);
 

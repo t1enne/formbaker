@@ -23,8 +23,8 @@ const field = (f: FormbakerField, _values: Record<string, unknown>): StandardSch
   const max = f.validation?.max;
 
   // select: value must be a valid index into options
-  if (f.type === "select") {
-    const opts = (f as FormbakerField<"select">).options;
+  if (f.fieldType === "select") {
+    const opts = f.options ?? [];
     return makeSchema((v) => {
       if (!req && (v === null || v === undefined)) return { value: v };
       if (typeof v !== "number" || v < 0 || v >= opts.length)
@@ -34,7 +34,7 @@ const field = (f: FormbakerField, _values: Record<string, unknown>): StandardSch
   }
 
   // checkbox / radio: boolean
-  if (f.type === "checkbox" || f.type === "radio") {
+  if (f.fieldType === "checkbox" || f.fieldType === "radio") {
     return makeSchema((v) => {
       if (!req && (v === null || v === undefined)) return { value: v };
       if (typeof v !== "boolean") return { issues: [{ message: `Expected boolean for ${f.id}` }] };
@@ -43,7 +43,7 @@ const field = (f: FormbakerField, _values: Record<string, unknown>): StandardSch
   }
 
   // number
-  if (f.type === "number") {
+  if (f.fieldType === "number") {
     return makeSchema((v) => {
       if (!req && (v === null || v === undefined)) return { value: v };
       if (!isNum(v)) return { issues: [{ message: `Expected number for ${f.id}` }] };

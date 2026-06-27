@@ -8,17 +8,18 @@ describe("formbaker", () => {
   });
   it("should throw when adding nodes with duplicate ids", () => {
     const form = create({ pluginName: "test" });
-    const form2 = addNode(form, { id: "personal", type: "text" });
+    const form2 = addNode(form, { id: "personal", type: "field", fieldType: "text" });
 
     expect(() => {
-      addNode(form2, { id: "personal", type: "text" });
+      addNode(form2, { id: "personal", type: "field", fieldType: "text" });
     }).toThrow();
   });
 
   it("should work with nullable fields", () => {
     const form = addNode(create({ pluginName: "test" }), {
       id: "b",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       defaultValue: null,
     });
     let formbakerValidateResult = validate(form, { b: "b" });
@@ -28,10 +29,11 @@ describe("formbaker", () => {
   it("should handle validations", () => {
     const form = create({
       pluginName: "test",
-      fields: {
+      nodes: {
         b: {
           id: "b",
-          type: "text",
+          type: "field",
+          fieldType: "text",
           defaultValue: null,
           validation: {
             required: { message: "Please pick one" },
@@ -53,10 +55,11 @@ describe("formbaker", () => {
   it("should handle max validation for numbers", () => {
     const form = create({
       pluginName: "test",
-      fields: {
+      nodes: {
         age: {
           id: "age",
-          type: "number",
+          type: "field",
+          fieldType: "number",
           validation: {
             required: { message: "Age is required" },
             min: 1,

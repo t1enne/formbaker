@@ -18,7 +18,7 @@ const buildSchema = (field: FormbakerField): string => {
   const min = validation?.min;
   const max = validation?.max;
 
-  if (field.type === "text") {
+  if (field.fieldType === "text") {
     let constraints = isOptional ? "string" : "string > 0";
     if (isNumber(min) && min > 0) {
       constraints += ` & string >= ${min}`;
@@ -28,7 +28,7 @@ const buildSchema = (field: FormbakerField): string => {
     }
     return schema + constraints;
   }
-  if (field.type === "number") {
+  if (field.fieldType === "number") {
     let constraints = "";
     if (min !== undefined) {
       constraints += `number >= ${min}`;
@@ -39,14 +39,14 @@ const buildSchema = (field: FormbakerField): string => {
     const baseSchema = constraints || "number";
     return schema + baseSchema;
   }
-  if (field.type === "select") {
-    const opts = (field as FormbakerField<"select">).options;
+  if (field.fieldType === "select") {
+    const opts = field.options ?? [];
     return schema + opts.map((_, i) => `${i}`).join(" | ");
   }
-  if (field.type === "checkbox" || field.type === "radio") {
+  if (field.fieldType === "checkbox" || field.fieldType === "radio") {
     return schema + "boolean";
   }
-  if (field.type === "textarea") {
+  if (field.fieldType === "textarea") {
     let constraints = isOptional ? "string" : "string > 0";
     if (isNumber(min) && min > 0) {
       constraints += ` & string >= ${min}`;
@@ -56,7 +56,7 @@ const buildSchema = (field: FormbakerField): string => {
     }
     return schema + constraints;
   }
-  if (field.type === "file") {
+  if (field.fieldType === "file") {
     return schema + "object";
   }
   return schema;

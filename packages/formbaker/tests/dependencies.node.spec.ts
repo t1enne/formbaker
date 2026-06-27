@@ -19,10 +19,11 @@ describe("formbaker dependencies", () => {
   it("should handle optional subsections", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "parent", type: "text" });
+      f = addNode(f, { id: "parent", type: "field", fieldType: "text" });
       f = addNode(f, {
         id: "child",
-        type: "number",
+        type: "field",
+        fieldType: "number",
         validation: { required: true },
       });
       f = addDependency(f, {
@@ -50,16 +51,18 @@ describe("formbaker dependencies", () => {
     const form = addDependency(
       create({
         pluginName: "test",
-        fields: {
+        nodes: {
           parent: {
             id: "parent",
             defaultValue: null,
-            type: "checkbox",
+            type: "field",
+            fieldType: "checkbox",
           },
           child: {
             id: "child",
             defaultValue: null,
-            type: "checkbox",
+            type: "field",
+            fieldType: "checkbox",
             validation: { required: true },
           },
         },
@@ -87,8 +90,8 @@ describe("formbaker dependencies", () => {
   it("should detect immediate self-references", () => {
     const form = create({
       pluginName: "test",
-      fields: {
-        fieldA: { id: "fieldA", type: "text" },
+      nodes: {
+        fieldA: { id: "fieldA", type: "field", fieldType: "text" },
       },
     });
     expect(() =>
@@ -103,10 +106,10 @@ describe("formbaker dependencies", () => {
   it("handle removal of dependencies", () => {
     let form = create({
       pluginName: "test",
-      fields: {
-        fieldA: { id: "fieldA", type: "text" },
-        fieldB: { id: "fieldB", type: "text" },
-        fieldC: { id: "fieldC", type: "text" },
+      nodes: {
+        fieldA: { id: "fieldA", type: "field", fieldType: "text" },
+        fieldB: { id: "fieldB", type: "field", fieldType: "text" },
+        fieldC: { id: "fieldC", type: "field", fieldType: "text" },
       },
     });
     const d = {
@@ -132,9 +135,9 @@ describe("formbaker dependencies", () => {
   it("should handle AND dependencies — all must pass", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "a", type: "checkbox" });
-      f = addNode(f, { id: "b", type: "checkbox" });
-      f = addNode(f, { id: "target", type: "text", validation: { required: true } });
+      f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "b", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
       f = addDependency(f, { source: "a", target: "target", condition: "true", dependencyType: "AND" });
       f = addDependency(f, { source: "b", target: "target", condition: "true", dependencyType: "AND" });
       return f;
@@ -158,9 +161,9 @@ describe("formbaker dependencies", () => {
   it("should handle XOR dependencies — exactly one must pass", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "a", type: "checkbox" });
-      f = addNode(f, { id: "b", type: "checkbox" });
-      f = addNode(f, { id: "target", type: "text", validation: { required: true } });
+      f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "b", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
       f = addDependency(f, { source: "a", target: "target", condition: "true", dependencyType: "XOR" });
       f = addDependency(f, { source: "b", target: "target", condition: "true", dependencyType: "XOR" });
       return f;
@@ -184,10 +187,10 @@ describe("formbaker dependencies", () => {
   it("should handle mixed AND + OR groups — groups OR'd together", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "has_express", type: "checkbox" });
-      f = addNode(f, { id: "has_phone", type: "checkbox" });
-      f = addNode(f, { id: "is_gift", type: "checkbox" });
-      f = addNode(f, { id: "delivery_prefs", type: "text", validation: { required: true } });
+      f = addNode(f, { id: "has_express", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "has_phone", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "is_gift", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "delivery_prefs", type: "field", fieldType: "text", validation: { required: true } });
       // AND group: has_express AND has_phone must both be true
       f = addDependency(f, { source: "has_express", target: "delivery_prefs", condition: "true", dependencyType: "AND" });
       f = addDependency(f, { source: "has_phone", target: "delivery_prefs", condition: "true", dependencyType: "AND" });
@@ -215,8 +218,8 @@ describe("formbaker dependencies", () => {
   it("should default missing dependencyType to OR", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "a", type: "checkbox" });
-      f = addNode(f, { id: "target", type: "text", validation: { required: true } });
+      f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
+      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
       // No dependencyType → defaults to OR
       f = addDependency(f, { source: "a", target: "target", condition: "true" });
       return f;
@@ -237,10 +240,10 @@ describe("formbaker dependencies", () => {
   it("should remove nodes and its edges", () => {
     let form = create({
       pluginName: "test",
-      fields: {
-        fieldA: { id: "fieldA", type: "text" },
-        fieldB: { id: "fieldB", type: "text" },
-        fieldC: { id: "fieldC", type: "text" },
+      nodes: {
+        fieldA: { id: "fieldA", type: "field", fieldType: "text" },
+        fieldB: { id: "fieldB", type: "field", fieldType: "text" },
+        fieldC: { id: "fieldC", type: "field", fieldType: "text" },
       },
     });
     form = addDependency(form, {
@@ -262,9 +265,9 @@ describe("formbaker dependencies", () => {
     const [result, success2] = removeNode(form, "fieldC");
     expect(success2).toBeTruthy();
 
-    expect(result.fields["fieldC"]).toBeFalsy();
+    expect(result.nodes["fieldC"]).toBeFalsy();
     expect(result.dependencies.forward["fieldB"]!.length).toBe(0);
     // original form is unchanged
-    expect(form.fields["fieldC"]).toBeTruthy();
+    expect(form.nodes["fieldC"]).toBeTruthy();
   });
 });

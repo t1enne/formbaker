@@ -4,7 +4,8 @@ import { describe, it, expect, beforeAll } from "vitest";
 
 const field = {
   id: "b",
-  type: "select" as const,
+  type: "field" as const,
+  fieldType: "select" as const,
   validation: {},
   options: ["a", "b"],
 };
@@ -14,7 +15,7 @@ describe("formbaker selects", () => {
     registerPlugin("test", testPlugin);
   });
 
-  let fb = create({ pluginName: "test", fields: { b: field } });
+  let fb = create({ pluginName: "test", nodes: { b: field } });
 
   it("should allow nullable state", () => {
     let formbakerValidateResult = validate(fb, { b: null });

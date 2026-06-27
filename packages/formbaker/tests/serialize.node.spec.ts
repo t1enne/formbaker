@@ -15,9 +15,9 @@ describe("serialization", () => {
   });
   it("form should survive JSON stringify/parse round-trip", () => {
     const form = create({
-      fields: {
-        name: { id: "name", type: "text", validation: { required: true } },
-        age: { id: "age", type: "number", validation: { min: 0 } },
+      nodes: {
+        name: { id: "name", type: "field", fieldType: "text", validation: { required: true } },
+        age: { id: "age", type: "field", fieldType: "number", validation: { min: 0 } },
       },
       pluginName: "test",
     });
@@ -26,8 +26,9 @@ describe("serialization", () => {
     const restored = JSON.parse(json);
 
     expect(restored.pluginName).toBe("test");
-    expect(restored.fields.name.type).toBe("text");
-    expect(restored.fields.age.validation.min).toBe(0);
+    expect(restored.nodes.name.type).toBe("field");
+    expect(restored.nodes.name.fieldType).toBe("text");
+    expect(restored.nodes.age.validation.min).toBe(0);
     expect(typeof restored.pluginName).toBe("string");
 
     // Rehydrate
@@ -39,11 +40,12 @@ describe("serialization", () => {
 
   it("rehydrated form with dependencies should validate correctly", () => {
     const original = create({
-      fields: {
-        parent: { id: "parent", type: "checkbox" },
+      nodes: {
+        parent: { id: "parent", type: "field", fieldType: "checkbox" },
         child: {
           id: "child",
-          type: "text",
+          type: "field",
+          fieldType: "text",
           validation: { required: true },
         },
       },

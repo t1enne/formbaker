@@ -22,7 +22,8 @@ describe("zodPlugin", () => {
   it("should validate required text", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
 
@@ -33,7 +34,8 @@ describe("zodPlugin", () => {
   it("should validate optional text (null/undefined OK)", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "bio",
-      type: "text",
+      type: "field",
+      fieldType: "text",
     });
 
     expect(validate(form, { bio: null }).success).toBe(true);
@@ -44,7 +46,8 @@ describe("zodPlugin", () => {
   it("should enforce text min/max", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "msg",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { min: 2, max: 5 },
     });
 
@@ -58,7 +61,8 @@ describe("zodPlugin", () => {
   it("should validate required number", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { required: true },
     });
 
@@ -71,7 +75,8 @@ describe("zodPlugin", () => {
   it("should enforce number min/max", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "score",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 0, max: 100 },
     });
 
@@ -84,7 +89,8 @@ describe("zodPlugin", () => {
   it("should validate optional number", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "opt",
-      type: "number",
+      type: "field",
+      fieldType: "number",
     });
 
     expect(validate(form, { opt: null }).success).toBe(true);
@@ -96,7 +102,8 @@ describe("zodPlugin", () => {
   it("should validate required select", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "color",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["Rosso", "Verde"],
       validation: { required: true },
     });
@@ -109,7 +116,8 @@ describe("zodPlugin", () => {
   it("should validate optional select", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "size",
-      type: "select",
+      type: "field",
+      fieldType: "select",
       options: ["Piccolo"],
     });
 
@@ -122,7 +130,8 @@ describe("zodPlugin", () => {
   it("should validate required checkbox", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "agree",
-      type: "checkbox",
+      type: "field",
+      fieldType: "checkbox",
       validation: { required: true },
     });
 
@@ -135,7 +144,8 @@ describe("zodPlugin", () => {
   it("should validate optional checkbox", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "newsletter",
-      type: "checkbox",
+      type: "field",
+      fieldType: "checkbox",
     });
 
     expect(validate(form, { newsletter: null }).success).toBe(true);
@@ -146,7 +156,8 @@ describe("zodPlugin", () => {
   it("should validate required radio", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "gender",
-      type: "radio",
+      type: "field",
+      fieldType: "radio",
       validation: { required: true },
     });
 
@@ -159,7 +170,8 @@ describe("zodPlugin", () => {
   it("should validate required textarea", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "bio",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { required: true },
     });
 
@@ -170,7 +182,8 @@ describe("zodPlugin", () => {
   it("should enforce textarea min/max", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "desc",
-      type: "textarea",
+      type: "field",
+      fieldType: "textarea",
       validation: { min: 10, max: 100 },
     });
 
@@ -182,7 +195,8 @@ describe("zodPlugin", () => {
   it("should validate required file as object", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "resume",
-      type: "file",
+      type: "field",
+      fieldType: "file",
       validation: { required: true },
     });
 
@@ -193,7 +207,8 @@ describe("zodPlugin", () => {
   it("should validate optional file", () => {
     const form = addNode(create({ pluginName: "zod" }), {
       id: "avatar",
-      type: "file",
+      type: "field",
+      fieldType: "file",
     });
 
     expect(validate(form, { avatar: null }).success).toBe(true);
@@ -205,12 +220,14 @@ describe("zodPlugin", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18 },
     });
 
@@ -222,12 +239,14 @@ describe("zodPlugin", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
       id: "name",
-      type: "text",
+      type: "field",
+      fieldType: "text",
       validation: { required: true },
     });
     form = addNode(form, {
       id: "age",
-      type: "number",
+      type: "field",
+      fieldType: "number",
       validation: { min: 18 },
     });
 
@@ -244,8 +263,8 @@ describe("zodPlugin", () => {
 
   it("should compose multiple field schemas into one object schema", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "a", type: "text", validation: { required: true } });
-    form = addNode(form, { id: "b", type: "number", validation: { min: 0 } });
+    form = addNode(form, { id: "a", type: "field", fieldType: "text", validation: { required: true } });
+    form = addNode(form, { id: "b", type: "field", fieldType: "number", validation: { min: 0 } });
 
     const result = validate(form, { a: "hi", b: 5 });
     expect(result.success).toBe(true);
@@ -257,9 +276,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          parent: { id: "parent", type: "checkbox" },
-          child: { id: "child", type: "text", validation: { required: true } },
+        nodes: {
+          parent: { id: "parent", type: "field", fieldType: "checkbox" },
+          child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "parent", target: "child", condition: "true" },
@@ -275,9 +294,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          parent: { id: "parent", type: "text" },
-          child: { id: "child", type: "text", validation: { required: true } },
+        nodes: {
+          parent: { id: "parent", type: "field", fieldType: "text" },
+          child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "parent", target: "child", condition: "string" },
@@ -292,9 +311,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          age: { id: "age", type: "number" },
-          note: { id: "note", type: "text", validation: { required: true } },
+        nodes: {
+          age: { id: "age", type: "field", fieldType: "number" },
+          note: { id: "note", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "age", target: "note", condition: "number" },
@@ -309,9 +328,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          toggle: { id: "toggle", type: "checkbox" },
-          extra: { id: "extra", type: "text", validation: { required: true } },
+        nodes: {
+          toggle: { id: "toggle", type: "field", fieldType: "checkbox" },
+          extra: { id: "extra", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "toggle", target: "extra", condition: "boolean" },
@@ -327,9 +346,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          file: { id: "file", type: "file" },
-          desc: { id: "desc", type: "text", validation: { required: true } },
+        nodes: {
+          file: { id: "file", type: "field", fieldType: "file" },
+          desc: { id: "desc", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "file", target: "desc", condition: "object" },
@@ -344,9 +363,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
+        nodes: {
+          a: { id: "a", type: "field", fieldType: "text" },
+          b: { id: "b", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "a", target: "b", condition: "any" },
@@ -361,9 +380,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
+        nodes: {
+          a: { id: "a", type: "field", fieldType: "text" },
+          b: { id: "b", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       // "$eq(42)" is arktype DSL — zod plugin can't translate it, falls back to visible
@@ -378,9 +397,9 @@ describe("zodPlugin", () => {
     const form = addDependency(
       create({
         pluginName: "zod",
-        fields: {
-          a: { id: "a", type: "text" },
-          b: { id: "b", type: "text", validation: { required: true } },
+        nodes: {
+          a: { id: "a", type: "field", fieldType: "text" },
+          b: { id: "b", type: "field", fieldType: "text", validation: { required: true } },
         },
       }),
       { source: "a", target: "b", condition: 42 },

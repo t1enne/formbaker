@@ -17,7 +17,7 @@ const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
   const min = validation?.min;
   const max = validation?.max;
 
-  if (field.type === "text" || field.type === "textarea") {
+  if (field.fieldType === "text" || field.fieldType === "textarea") {
     let schema: z.ZodString = z.string();
     if (!isOptional) {
       schema = schema.min(1);
@@ -31,7 +31,7 @@ const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
     return isOptional ? z.union([z.undefined(), z.null(), schema]) : schema;
   }
 
-  if (field.type === "number") {
+  if (field.fieldType === "number") {
     let schema: z.ZodNumber = z.number();
     if (isNumber(min)) {
       schema = schema.gte(min);
@@ -42,8 +42,8 @@ const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
     return isOptional ? z.union([z.undefined(), z.null(), schema]) : schema;
   }
 
-  if (field.type === "select") {
-    const opts = (field as FormbakerField<"select">).options;
+  if (field.fieldType === "select") {
+    const opts = field.options ?? [];
     const literals = opts.map((_, i) => z.literal(i));
     const schema = z.union(
       literals as [z.ZodLiteral<number>, z.ZodLiteral<number>, ...z.ZodLiteral<number>[]],
@@ -51,12 +51,12 @@ const buildSchema = (field: FormbakerField): z.ZodTypeAny => {
     return isOptional ? z.union([z.undefined(), z.null(), schema]) : schema;
   }
 
-  if (field.type === "checkbox" || field.type === "radio") {
+  if (field.fieldType === "checkbox" || field.fieldType === "radio") {
     const schema = z.boolean();
     return isOptional ? z.union([z.undefined(), z.null(), schema]) : schema;
   }
 
-  if (field.type === "file") {
+  if (field.fieldType === "file") {
     const schema = z.object({}).passthrough();
     return isOptional ? z.union([z.undefined(), z.null(), schema]) : schema;
   }
