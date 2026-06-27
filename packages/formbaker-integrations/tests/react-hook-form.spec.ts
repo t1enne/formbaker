@@ -2,116 +2,45 @@
  * Tests for the react-hook-form integration.
  *
  * The integration is a thin wrapper around useForm + standardSchemaResolver.
- * We test that it produces a valid UseFormReturn-compatible object and that
- * the resolver actually validates using the Formbaker schema.
+ * We test that it produces a resolver that validates using the Formbaker schema
+ * with both arktype and zod plugins.
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { create, addNode, registerPlugin, getSchema } from "formbaker";
-import { arktypePlugin } from "@formbaker/plugins/arktype";
 import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
+
+const fakeCtx = {
+  criteriaMode: "firstError" as const,
+  fields: {},
+  names: [],
+  shouldUseNativeValidation: false,
+};
 
 describe("react-hook-form integration", () => {
   beforeAll(() => {
-    registerPlugin("arktype", arktypePlugin);
+    // Both plugins need to be registered for the param tests
   });
 
-  it("should produce a resolver compatible with useForm", async () => {
+  it("validates with arktype plugin", async () => {
+    registerPlugin("arktype", (await import("@formbaker/plugins/arktype")).arktypePlugin);
     let form = create({ pluginName: "arktype" });
-    form = addNode(form, {
-      id: "name",
-      type: "field",
-      fieldType: "text",
-      validation: { required: true },
-    });
-    form = addNode(form, {
-      id: "age",
-      type: "field",
-      fieldType: "number",
-      validation: { min: 18 },
-    });
+    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
+    form = addNode(form, { id: "age", type: "field", fieldType: "number", validation: { min: 18 } });
 
-    const schema = getSchema(form, {});
-    const resolver = standardSchemaResolver(schema as any);
+    const resolver = standardSchemaResolver(getSchema(form, {}) as any);
 
-    // Simulate what react-hook-form does: call resolver with values
-    const result = await resolver(
-      { name: "", age: 15 },
-      undefined as any,
-      {
-        criteriaMode: "firstError",
-        fields: {},
-        names: [],
-        shouldUseNativeValidation: false,
-      } as any,
-    );
-
-    expect(result.errors).toBeDefined();
-    // name is empty (required, min 1), age is 15 (min 18)
-    expect(Object.keys(result.errors!).length).toBeGreaterThan(0);
+    expect(Object.keys((await resolver({ name: "", age: 15 }, undefined as any, fakeCtx as any)).errors!).length).toBeGreaterThan(0);
+    expect((await resolver({ name: "Alice", age: 25 }, undefined as any, fakeCtx as any)).errors).toEqual({});
   });
 
-  it("should pass valid values through", async () => {
-    let form = create({ pluginName: "arktype" });
-    form = addNode(form, {
-      id: "name",
-      type: "field",
-      fieldType: "text",
-      validation: { required: true },
-    });
-
-    const schema = getSchema(form, {});
-    const resolver = standardSchemaResolver(schema as any);
-
-    const result = await resolver(
-      { name: "Alice" },
-      undefined as any,
-      {
-        criteriaMode: "firstError",
-        fields: {},
-        names: [],
-        shouldUseNativeValidation: false,
-      } as any,
-    );
-
-    expect(result.errors).toEqual({});
-  });
-
-  it("should provide a standard-schema resolver using zod plugin", async () => {
+  it("validates with zod plugin", async () => {
     registerPlugin("zod", (await import("@formbaker/plugins/zod")).zodPlugin);
-
     let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "email",
-      type: "field",
-      fieldType: "text",
-      validation: { required: true, min: 5 },
-    });
+    form = addNode(form, { id: "email", type: "field", fieldType: "text", validation: { required: true, min: 5 } });
 
-    const schema = getSchema(form, {});
-    const resolver = standardSchemaResolver(schema as any);
+    const resolver = standardSchemaResolver(getSchema(form, {}) as any);
 
-    const invalid = await resolver(
-      { email: "a" },
-      undefined as any,
-      {
-        criteriaMode: "firstError",
-        fields: {},
-        names: [],
-        shouldUseNativeValidation: false,
-      } as any,
-    );
-    expect(Object.keys(invalid.errors!).length).toBeGreaterThan(0);
-
-    const valid = await resolver(
-      { email: "a@b.co" },
-      undefined as any,
-      {
-        criteriaMode: "firstError",
-        fields: {},
-        names: [],
-        shouldUseNativeValidation: false,
-      } as any,
-    );
-    expect(valid.errors).toEqual({});
+    expect(Object.keys((await resolver({ email: "a" }, undefined as any, fakeCtx as any)).errors!).length).toBeGreaterThan(0);
+    expect((await resolver({ email: "a@b.co" }, undefined as any, fakeCtx as any)).errors).toEqual({});
   });
 });

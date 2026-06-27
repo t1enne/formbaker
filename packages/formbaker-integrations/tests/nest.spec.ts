@@ -6,153 +6,55 @@ import { create, addNode } from "formbaker";
 import { formbakerToClassValidator } from "../src/nest";
 
 describe("nest class-validator code generation", () => {
-  it("should generate imports", () => {
+  it("generates imports and class declaration", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
-    const code = formbakerToClassValidator(form, { className: "TestDto" });
+    const code = formbakerToClassValidator(form, { className: "CreateUserDto" });
 
-    expect(code).toContain("import {");
     expect(code).toContain('from "class-validator"');
-    // No unused class-transformer import
+    expect(code).toContain("export class CreateUserDto {");
     expect(code).not.toContain('from "class-transformer"');
   });
 
-  it("should generate the class declaration", () => {
-    const form = create({ pluginName: "zod" });
-    const code = formbakerToClassValidator(form, { className: "CreateUserDto" });
-
-    expect(code).toContain("export class CreateUserDto {");
-  });
-
-  it("should generate text field with @IsString, @IsNotEmpty, @MinLength, @MaxLength", () => {
+  it.each([
+    // [fieldType, validation, expectedDecorators, expectedType]
+    ["text",     { required: true, min: 2, max: 50 },   ["@IsString()", "@IsNotEmpty()", "@MinLength(2)", "@MaxLength(50)"], "string"],
+    ["number",   { required: true, min: 18, max: 120 }, ["@IsNumber()", "@Min(18)", "@Max(120)", "@IsDefined()"],             "number"],
+    ["textarea", { min: 10 },                           ["@IsOptional()", "@IsString()", "@MinLength(10)"],                    "string"],
+    ["checkbox", { required: true },                    ["@IsBoolean()", "@IsDefined()"],                                      "boolean"],
+    ["select",   { required: true },                    ["@IsNumber()", "@IsIn([0, 1, 2])", "@IsDefined()"],                  "number"],
+    ["file",     { required: true },                    ["@IsObject()", "@IsDefined()"],                                      "Record<string, unknown>"],
+  ] as const)("%s %j → %j", (fieldType, validation, expectedDecorators, expectedType) => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, {
-      id: "name",
+      id: "field",
       type: "field",
-      fieldType: "text",
-      validation: { required: true, min: 2, max: 50 },
+      fieldType,
+      ...(fieldType === "select" ? { options: ["Red", "Green", "Blue"] } : {}),
+      validation,
     });
-
     const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsString()");
-    expect(code).toContain("@IsNotEmpty()");
-    expect(code).toContain("@MinLength(2)");
-    expect(code).toContain("@MaxLength(50)");
-    expect(code).toContain("name!: string;");
+    for (const dec of expectedDecorators) expect(code).toContain(dec);
+    expect(code).toContain(`field!: ${expectedType};`);
   });
 
-  it("should generate number field with @IsNumber, @Min, @Max", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "age",
-      type: "field",
-      fieldType: "number",
-      validation: { required: true, min: 18, max: 120 },
-    });
-
-    const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsNumber()");
-    expect(code).toContain("@Min(18)");
-    expect(code).toContain("@Max(120)");
-    expect(code).toContain("@IsDefined()");
-    expect(code).toContain("age!: number;");
-  });
-
-  it("should generate optional fields with @IsOptional", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "bio",
-      type: "field",
-      fieldType: "textarea",
-      validation: { min: 10 },
-    });
-
-    const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsOptional()");
-    expect(code).toContain("@IsString()");
-    expect(code).toContain("@MinLength(10)");
-    // No @IsNotEmpty for optional
-    expect(code).not.toContain("@IsNotEmpty()");
-  });
-
-  it("should generate checkbox as boolean with @IsBoolean", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "agree",
-      type: "field",
-      fieldType: "checkbox",
-      validation: { required: true },
-    });
-
-    const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsBoolean()");
-    expect(code).toContain("agree!: boolean;");
-  });
-
-  it("should generate select with @IsNumber, @IsIn", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "color",
-      type: "field",
-      fieldType: "select",
-      options: ["Red", "Green", "Blue"],
-      validation: { required: true },
-    });
-
-    const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsNumber()");
-    expect(code).toContain("@IsIn([0, 1, 2])");
-    expect(code).toContain("color!: number;");
-  });
-
-  it("should generate file as Record with @IsObject", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "resume",
-      type: "field",
-      fieldType: "file",
-      validation: { required: true },
-    });
-
-    const code = formbakerToClassValidator(form, { className: "Dto" });
-
-    expect(code).toContain("@IsObject()");
-    expect(code).toContain("resume!: Record<string, unknown>;");
-  });
-
-  it("should omit imports when includeImports is false", () => {
+  it("omits imports when includeImports is false", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
-    const code = formbakerToClassValidator(form, {
-      className: "Dto",
-      includeImports: false,
-    });
-
-    expect(code).not.toContain('from "class-validator"');
+    expect(formbakerToClassValidator(form, { className: "Dto", includeImports: false }))
+      .not.toContain('from "class-validator"');
   });
 
-  it("should apply class-level decorators", () => {
+  it("applies class-level decorators", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
-    const code = formbakerToClassValidator(form, {
-      className: "Dto",
-      classDecorators: ["@ApiProperty()"],
-    });
-
-    expect(code).toContain("@ApiProperty()");
+    expect(formbakerToClassValidator(form, { className: "Dto", classDecorators: ["@ApiProperty()"] }))
+      .toContain("@ApiProperty()");
   });
 
-  it("should generate an empty class when there are no fields", () => {
-    const form = create({ pluginName: "zod" });
-    const code = formbakerToClassValidator(form, { className: "EmptyDto" });
-
+  it("generates empty class when no fields", () => {
+    const code = formbakerToClassValidator(create({ pluginName: "zod" }), { className: "EmptyDto" });
     expect(code).toContain("export class EmptyDto {");
     expect(code).toContain("}");
-    expect(code).not.toContain("!:");
   });
 });

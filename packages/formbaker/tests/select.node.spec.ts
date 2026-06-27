@@ -2,35 +2,18 @@ import { create, validate, registerPlugin } from "formbaker";
 import { testPlugin } from "./testPlugin";
 import { describe, it, expect, beforeAll } from "vitest";
 
-const field = {
-  id: "b",
-  type: "field" as const,
-  fieldType: "select" as const,
-  validation: {},
-  options: ["a", "b"],
-};
-
-describe("formbaker selects", () => {
+describe("select field", () => {
   beforeAll(() => {
     registerPlugin("test", testPlugin);
   });
 
-  let fb = create({ pluginName: "test", nodes: { b: field } });
+  it("nullable when optional, validates index bounds when required", () => {
+    const optional = create({ pluginName: "test", nodes: { b: { id: "b", type: "field", fieldType: "select", validation: {}, options: ["a", "b"] } } });
+    expect(validate(optional, { b: null }).success).toBe(true);
 
-  it("should allow nullable state", () => {
-    let formbakerValidateResult = validate(fb, { b: null });
-    expect(formbakerValidateResult.success).toBe(true);
-  });
-
-  it("should disallow unspecified values", () => {
-    field.validation = { required: true };
-    const r1 = validate(fb, { b: 2 });
-    expect(r1.success).toBe(false);
-
-    const r2 = validate(fb, { b: null });
-    expect(r2.success).toBe(false);
-
-    const r3 = validate(fb, { b: 1 });
-    expect(r3.success).toBe(true);
+    const required = create({ pluginName: "test", nodes: { b: { id: "b", type: "field", fieldType: "select", validation: { required: true }, options: ["a", "b"] } } });
+    expect(validate(required, { b: 2 }).success).toBe(false);
+    expect(validate(required, { b: null }).success).toBe(false);
+    expect(validate(required, { b: 1 }).success).toBe(true);
   });
 });

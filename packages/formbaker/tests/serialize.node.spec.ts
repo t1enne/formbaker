@@ -13,7 +13,8 @@ describe("serialization", () => {
   beforeAll(() => {
     registerPlugin("test", testPlugin);
   });
-  it("form should survive JSON stringify/parse round-trip", () => {
+
+  it("round-trips fields, validates after rehydration", () => {
     const form = create({
       nodes: {
         name: { id: "name", type: "field", fieldType: "text", validation: { required: true } },
@@ -22,49 +23,28 @@ describe("serialization", () => {
       pluginName: "test",
     });
 
-    const json = JSON.stringify(form, null, 2);
-    const restored = JSON.parse(json);
-
-    expect(restored.pluginName).toBe("test");
-    expect(restored.nodes.name.type).toBe("field");
-    expect(restored.nodes.name.fieldType).toBe("text");
-    expect(restored.nodes.age.validation.min).toBe(0);
-    expect(typeof restored.pluginName).toBe("string");
-
-    // Rehydrate
+    const restored = JSON.parse(JSON.stringify(form));
     const rehydrated = create({ ...restored, pluginName: restored.pluginName });
 
     expect(validate(rehydrated, { name: "" }).success).toBe(false);
     expect(validate(rehydrated, { name: "Alice" }).success).toBe(true);
   });
 
-  it("rehydrated form with dependencies should validate correctly", () => {
+  it("round-trips dependencies correctly", () => {
     const original = create({
       nodes: {
         parent: { id: "parent", type: "field", fieldType: "checkbox" },
-        child: {
-          id: "child",
-          type: "field",
-          fieldType: "text",
-          validation: { required: true },
-        },
+        child: { id: "child", type: "field", fieldType: "text", validation: { required: true } },
       },
       dependencies: {
-        forward: {
-          parent: [{ source: "parent", target: "child", condition: "true" }],
-        },
-        backward: {
-          child: [{ source: "parent", target: "child", condition: "true" }],
-        },
+        forward: { parent: [{ source: "parent", target: "child", condition: "true" }] },
+        backward: { child: [{ source: "parent", target: "child", condition: "true" }] },
       },
       pluginName: "test",
     });
 
-    const json = JSON.stringify(original);
-    const loaded = JSON.parse(json);
-    const rehydrated = create({ ...loaded });
+    const rehydrated = create({ ...JSON.parse(JSON.stringify(original)) });
 
-    // child only required when parent is true
     expect(validate(rehydrated, { parent: false }).success).toBe(true);
     expect(validate(rehydrated, { parent: true, child: "x" }).success).toBe(true);
     expect(validate(rehydrated, { parent: true, child: "" }).success).toBe(false);

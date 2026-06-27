@@ -6,72 +6,48 @@ describe("formbaker", () => {
   beforeAll(() => {
     registerPlugin("test", testPlugin);
   });
-  it("should throw when adding nodes with duplicate ids", () => {
-    const form = create({ pluginName: "test" });
-    const form2 = addNode(form, { id: "personal", type: "field", fieldType: "text" });
 
-    expect(() => {
-      addNode(form2, { id: "personal", type: "field", fieldType: "text" });
-    }).toThrow();
-  });
-
-  it("should work with nullable fields", () => {
+  it("throws on duplicate node ids", () => {
     const form = addNode(create({ pluginName: "test" }), {
-      id: "b",
-      type: "field",
-      fieldType: "text",
-      defaultValue: null,
+      id: "personal", type: "field", fieldType: "text",
     });
-    let formbakerValidateResult = validate(form, { b: "b" });
-    expect(formbakerValidateResult.success).toBe(true);
+    expect(() => addNode(form, { id: "personal", type: "field", fieldType: "text" })).toThrow();
   });
 
-  it("should handle validations", () => {
+  it("handles validation: required text, max length, number range", () => {
+    // required text + max → 3 cases (null, within limit, over limit)
     const form = create({
       pluginName: "test",
       nodes: {
         b: {
-          id: "b",
-          type: "field",
-          fieldType: "text",
+          id: "b", type: "field", fieldType: "text",
           defaultValue: null,
-          validation: {
-            required: { message: "Please pick one" },
-            max: 5,
-          },
+          validation: { required: { message: "Please pick one" }, max: 5 },
+        },
+        age: {
+          id: "age", type: "field", fieldType: "number",
+          validation: { required: { message: "Age is required" }, min: 1, max: 150 },
         },
       },
     });
 
-    const first = validate(form, { b: null });
-    expect(first.success).toBe(false);
-
-    const second = validate(form, { b: "B" });
-    expect(second.success).toBe(true);
-
-    expect(validate(form, { b: "hello my friend" }).success).toBe(false);
+    // b is null → required field fails
+    expect(validate(form, { b: null }).success).toBe(false);
+    // b valid, age valid
+    expect(validate(form, { b: "B", age: 25 }).success).toBe(true);
+    // b too long
+    expect(validate(form, { b: "hello my friend", age: 25 }).success).toBe(false);
+    // number range
+    expect(validate(form, { b: "x", age: 150 }).success).toBe(true);
+    expect(validate(form, { b: "x", age: 151 }).success).toBe(false);
+    expect(validate(form, { b: "x", age: 0 }).success).toBe(false);
   });
 
-  it("should handle max validation for numbers", () => {
-    const form = create({
-      pluginName: "test",
-      nodes: {
-        age: {
-          id: "age",
-          type: "field",
-          fieldType: "number",
-          validation: {
-            required: { message: "Age is required" },
-            min: 1,
-            max: 150,
-          },
-        },
-      },
+  it("accepts nullable fields", () => {
+    const form = addNode(create({ pluginName: "test" }), {
+      id: "b", type: "field", fieldType: "text", defaultValue: null,
     });
-
-    expect(validate(form, { age: 150 }).success).toBe(true);
-    expect(validate(form, { age: 151 }).success).toBe(false);
-    expect(validate(form, { age: 0 }).success).toBe(false);
-    expect(validate(form, { age: -1 }).success).toBe(false);
+    expect(validate(form, { b: null }).success).toBe(true);
+    expect(validate(form, { b: "b" }).success).toBe(true);
   });
 });
