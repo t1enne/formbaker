@@ -10,10 +10,10 @@ export const GET: APIRoute = ({ request }) => {
   const formDef = url.searchParams.get("def");
 
   if (!formDef) {
-    return new Response(
-      JSON.stringify({ error: "Missing 'def' query parameter" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "Missing 'def' query parameter" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -31,9 +31,9 @@ export const GET: APIRoute = ({ request }) => {
       { status: 200, headers: { "Content-Type": "application/json" } },
     );
   } catch {
-    return new Response(
-      JSON.stringify({ error: "Invalid JSON" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "Invalid JSON" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 };

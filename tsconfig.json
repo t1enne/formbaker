@@ -10,5 +10,12 @@
     "outDir": "dist",
     "declaration": true
   },
-  "exclude": ["node_modules", "dist", "docs", "packages/**/tests/**", "packages/**/*.spec.ts", "packages/**/*.spec.tsx"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "docs",
+    "packages/**/tests/**",
+    "packages/**/*.spec.ts",
+    "packages/**/*.spec.tsx"
+  ]
 }

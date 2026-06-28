@@ -58,18 +58,14 @@ import { Steps } from '@astrojs/starlight/components';
    import { useForm } from "react-hook-form";
 
    function MyForm() {
-     const { register, isInSchema, handleSubmit } = useFormbakerForm(
-       form,
-     );
+     const { register, isInSchema, handleSubmit } = useFormbakerForm(form);
 
      return (
        <form onSubmit={handleSubmit((data) => console.log(data))}>
          <input {...register("name")} />
          <input type="checkbox" {...register("has_pet")} />
 
-         {isInSchema("pet_name") && (
-           <input {...register("pet_name")} />
-         )}
+         {isInSchema("pet_name") && <input {...register("pet_name")} />}
 
          <button type="submit">Submit</button>
        </form>

@@ -22,20 +22,14 @@ import { create } from "formbaker";
 const form = create({ pluginName: "zod" }, nodes, dependencies);
 
 function SurveyForm() {
-  const {
-    register,
-    handleSubmit,
-    isInSchema,
-  } = useFormbakerForm(form);
+  const { register, handleSubmit, isInSchema } = useFormbakerForm(form);
 
   return (
     <form onSubmit={handleSubmit((data) => console.log(data))}>
       <input {...register("name")} />
 
       {/* Only render if visible */}
-      {isInSchema("pet_name") && (
-        <input {...register("pet_name")} />
-      )}
+      {isInSchema("pet_name") && <input {...register("pet_name")} />}
 
       <button type="submit">Submit</button>
     </form>
@@ -62,12 +56,14 @@ Returns `true` when the field is visible given current values. Use it to
 conditionally render field markup:
 
 ```tsx
-{isInSchema("advanced_option") && (
-  <fieldset>
-    <legend>Advanced</legend>
-    <input {...register("advanced_option")} />
-  </fieldset>
-)}
+{
+  isInSchema("advanced_option") && (
+    <fieldset>
+      <legend>Advanced</legend>
+      <input {...register("advanced_option")} />
+    </fieldset>
+  );
+}
 ```
 
 ## `visibleFields`

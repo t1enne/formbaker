@@ -96,95 +96,107 @@ const survey = create(
 <Tabs>
   <TabItem label="React Hook Form">
 
-  ```tsx
-  import { useFormbakerForm } from "formbaker-integrations/react-hook-form";
+```tsx
+import { useFormbakerForm } from "formbaker-integrations/react-hook-form";
 
-  function Survey() {
-    const { register, isInSchema, handleSubmit, formState: { errors } } =
-      useFormbakerForm(survey);
+function Survey() {
+  const {
+    register,
+    isInSchema,
+    handleSubmit,
+    formState: { errors },
+  } = useFormbakerForm(survey);
 
-    return (
-      <form onSubmit={handleSubmit((data) => {
+  return (
+    <form
+      onSubmit={handleSubmit((data) => {
         fetch("/api/survey", { method: "POST", body: JSON.stringify(data) });
-      })}>
-        {/* Rating is always visible */}
+      })}
+    >
+      {/* Rating is always visible */}
+      <fieldset>
+        <legend>How would you rate our service?</legend>
+        {["5", "4", "3", "2", "1"].map((v) => (
+          <label key={v}>
+            <input type="radio" value={v} {...register("rating")} />
+            {v}
+          </label>
+        ))}
+      </fieldset>
+
+      {/* Feedback — only for low ratings */}
+      {isInSchema("feedback") && (
+        <div>
+          <label>What could we improve?</label>
+          <textarea {...register("feedback")} />
+          {errors.feedback && <p>{errors.feedback.message}</p>}
+        </div>
+      )}
+
+      {/* Recommend */}
+      {isInSchema("recommend") && (
         <fieldset>
-          <legend>How would you rate our service?</legend>
-          {["5","4","3","2","1"].map(v => (
-            <label key={v}>
-              <input type="radio" value={v} {...register("rating")} />
-              {v}
-            </label>
-          ))}
+          <legend>How likely are you to recommend us?</legend>
+          <label>
+            <input type="radio" value="yes" {...register("recommend")} /> Yes
+          </label>
+          <label>
+            <input type="radio" value="no" {...register("recommend")} /> No
+          </label>
         </fieldset>
+      )}
 
-        {/* Feedback — only for low ratings */}
-        {isInSchema("feedback") && (
-          <div>
-            <label>What could we improve?</label>
-            <textarea {...register("feedback")} />
-            {errors.feedback && <p>{errors.feedback.message}</p>}
-          </div>
-        )}
+      {/* Referral source — only when happy AND willing to recommend */}
+      {isInSchema("referral_source") && (
+        <div>
+          <label>Where did you hear about us?</label>
+          <input {...register("referral_source")} />
+        </div>
+      )}
 
-        {/* Recommend */}
-        {isInSchema("recommend") && (
-          <fieldset>
-            <legend>How likely are you to recommend us?</legend>
-            <label><input type="radio" value="yes" {...register("recommend")} /> Yes</label>
-            <label><input type="radio" value="no" {...register("recommend")} /> No</label>
-          </fieldset>
-        )}
+      <button type="submit">Submit</button>
+    </form>
+  );
+}
+```
 
-        {/* Referral source — only when happy AND willing to recommend */}
-        {isInSchema("referral_source") && (
-          <div>
-            <label>Where did you hear about us?</label>
-            <input {...register("referral_source")} />
-          </div>
-        )}
-
-        <button type="submit">Submit</button>
-      </form>
-    );
-  }
-  ```
   </TabItem>
   <TabItem label="Angular">
 
-  ```ts
-  @Component({
-    selector: 'app-survey',
-    template: `
-      <form [formGroup]="fg" (ngSubmit)="onSubmit()">
-        <fieldset>
-          <legend>How would you rate our service?</legend>
-          <label *ngFor="let v of ratings">
-            <input type="radio" [value]="v" formControlName="rating" /> {{v}}
-          </label>
-        </fieldset>
+```ts
+@Component({
+  selector: "app-survey",
+  template: `
+    <form [formGroup]="fg" (ngSubmit)="onSubmit()">
+      <fieldset>
+        <legend>How would you rate our service?</legend>
+        <label *ngFor="let v of ratings">
+          <input type="radio" [value]="v" formControlName="rating" /> {{ v }}
+        </label>
+      </fieldset>
 
-        <ng-container *ngIf="hasControl('feedback')">
-          <label>What could we improve?</label>
-          <textarea formControlName="feedback"></textarea>
-        </ng-container>
+      <ng-container *ngIf="hasControl('feedback')">
+        <label>What could we improve?</label>
+        <textarea formControlName="feedback"></textarea>
+      </ng-container>
 
-        <button type="submit">Submit</button>
-      </form>
-    `
-  })
-  export class SurveyComponent implements OnInit {
-    ratings = ["5","4","3","2","1"];
-    fg = new FormGroup({});
+      <button type="submit">Submit</button>
+    </form>
+  `,
+})
+export class SurveyComponent implements OnInit {
+  ratings = ["5", "4", "3", "2", "1"];
+  fg = new FormGroup({});
 
-    ngOnInit() {
-      this.fg = rebuildFormGroup(survey, this.fg, { values: {} });
-      this.fg.valueChanges.subscribe(v => {
-        this.fg = rebuildFormGroup(survey, this.fg, { values: v });
-      });
-    }
+  ngOnInit() {
+    this.fg = rebuildFormGroup(survey, this.fg, { values: {} });
+    this.fg.valueChanges.subscribe((v) => {
+      this.fg = rebuildFormGroup(survey, this.fg, { values: v });
+    });
   }
-  ```
+}
+```
+
   </TabItem>
 </Tabs>
 

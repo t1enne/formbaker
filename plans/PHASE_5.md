@@ -88,14 +88,16 @@ POST /api/auth/reset-password
 Use **Resend** (resend.com) — simple REST API, generous free tier (100 emails/day), Node SDK.
 
 **Environment variables:**
+
 ```env
 RESEND_API_KEY=re_xxxx
 EMAIL_FROM="Formbaker <noreply@formbaker.dev>"
 ```
 
 **Send utility** (`src/lib/email.ts`):
+
 ```ts
-import { Resend } from 'resend';
+import { Resend } from "resend";
 
 const resend = new Resend(import.meta.env.RESEND_API_KEY);
 
@@ -107,7 +109,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
     html,
   });
   if (error) {
-    console.error('[email] send failed:', error);
+    console.error("[email] send failed:", error);
     // Don't throw — we don't want signup to 500 if email fails.
     // Log and move on. User can resend verification.
   }
@@ -116,6 +118,7 @@ export async function sendEmail(to: string, subject: string, html: string) {
 ```
 
 **Email templates** — use template literal functions, not a template engine:
+
 - `src/lib/email-templates/verify-email.ts`
 - `src/lib/email-templates/reset-password.ts`
 
@@ -176,12 +179,12 @@ CREATE TABLE custom_domains (
 
 ```ts
 // src/lib/dns.ts
-import { resolveTxt } from 'node:dns/promises';
+import { resolveTxt } from "node:dns/promises";
 
 export async function verifyDomain(domain: string, expectedToken: string): Promise<boolean> {
   try {
     const records = await resolveTxt(`_formbaker-verify.${domain}`);
-    return records.some(record => record.join('').includes(expectedToken));
+    return records.some((record) => record.join("").includes(expectedToken));
   } catch {
     return false;
   }
@@ -195,16 +198,16 @@ export async function verifyDomain(domain: string, expectedToken: string): Promi
 // Reads Host header, determines userId from custom_domains, loads the correct form
 
 export const GET: APIRoute = async ({ request, params }) => {
-  const host = request.headers.get('host') || '';
+  const host = request.headers.get("host") || "";
   const formId = params.formId;
 
   // If host matches a verified custom domain, only serve forms owned by that user
-  if (!host.endsWith('formbaker.dev')) {
+  if (!host.endsWith("formbaker.dev")) {
     const domain = await db.query.customDomains.findFirst({
-      where: eq(customDomains.domain, host)
+      where: eq(customDomains.domain, host),
     });
     if (!domain || !domain.verifiedAt) {
-      return new Response('Domain not configured', { status: 404 });
+      return new Response("Domain not configured", { status: 404 });
     }
     // domain.userId gates which forms can be served
   }
@@ -218,15 +221,18 @@ export const GET: APIRoute = async ({ request, params }) => {
 Custom domains in production need a reverse proxy (Nginx/Caddy) that terminates TLS for arbitrary domains. Options:
 
 **Option A: Wildcard TLS + Nginx** (simplest for self-hosted/on-prem)
+
 - Nginx listens on 443 with a wildcard cert (`*.formbaker.dev`)
 - Routes all requests to the Node server
 - Node reads the Host header
 
 **Option B: Caddy with on-demand TLS** (simplest for single-server)
+
 - Caddy automatically provisions Let's Encrypt certs for each custom domain
 - Zero manual cert management
 
 **Option C: Cloudflare for SaaS** (robust for production)
+
 - Use Cloudflare SSL for SaaS
 - Custom hostname API handles cert provisioning
 - Customer points CNAME to `proxy.formbaker.dev` (Cloudflare)
@@ -247,36 +253,36 @@ Astro 7 does not include CSRF middleware by default. Use the **double-submit coo
 
 ```ts
 // src/lib/csrf.ts
-import crypto from 'node:crypto';
+import crypto from "node:crypto";
 
-const CSRF_COOKIE = 'csrf_token';
-const CSRF_HEADER = 'X-CSRF-Token';
+const CSRF_COOKIE = "csrf_token";
+const CSRF_HEADER = "X-CSRF-Token";
 
 export function generateCsrfToken(): string {
-  return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString("hex");
 }
 
 // In middleware: set csrf cookie on all GET /app/* responses
 // In POST handlers: compare header value to cookie value
 
 export function validateCsrf(request: Request): boolean {
-  const cookieHeader = request.headers.get('cookie') || '';
+  const cookieHeader = request.headers.get("cookie") || "";
   const csrfCookie = cookieHeader
-    .split(';')
-    .map(c => c.trim())
-    .find(c => c.startsWith(`${CSRF_COOKIE}=`));
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${CSRF_COOKIE}=`));
 
   if (!csrfCookie) return false;
-  const cookieValue = csrfCookie.split('=')[1];
+  const cookieValue = csrfCookie.split("=")[1];
   const headerValue = request.headers.get(CSRF_HEADER);
 
   return cookieValue === headerValue;
 }
 ```
 
-**Protected routes:** All POST/PUT/DELETE /api/* and /app/* endpoints.
+**Protected routes:** All POST/PUT/DELETE /api/_ and /app/_ endpoints.
 
-**Relaxation:** GET endpoints and /api/embed/* (public, stateless) are exempt.
+**Relaxation:** GET endpoints and /api/embed/\* (public, stateless) are exempt.
 
 **Rate limiting on CSRF token:** Set `SameSite=Lax; HttpOnly; Secure; Path=/`.
 
@@ -285,6 +291,7 @@ export function validateCsrf(request: Request): boolean {
 Implement a simple in-process rate limiter backed by SQLite. No Redis needed at this scale.
 
 **Schema:**
+
 ```sql
 CREATE TABLE rate_limits (
   key        TEXT NOT NULL,     -- e.g. "auth:login:192.168.1.1"
@@ -295,23 +302,24 @@ CREATE TABLE rate_limits (
 ```
 
 **Rate limiter module** (`src/lib/rate-limit.ts`):
+
 ```ts
-import { db } from './db';
+import { db } from "./db";
 
 const LIMITS = {
-  'auth:login':       { max: 5,   windowMs: 60_000 },    // 5 per minute
-  'auth:signup':      { max: 3,   windowMs: 60_000 },    // 3 per minute
-  'auth:forgot':      { max: 1,   windowMs: 60_000 },    // 1 per minute
-  'auth:verify':      { max: 10,  windowMs: 60_000 },    // 10 per minute
-  'api:embed':        { max: 100, windowMs: 60_000 },    // 100 per minute per IP
-  'api:forms:write':  { max: 30,  windowMs: 60_000 },    // 30 per minute per user
+  "auth:login": { max: 5, windowMs: 60_000 }, // 5 per minute
+  "auth:signup": { max: 3, windowMs: 60_000 }, // 3 per minute
+  "auth:forgot": { max: 1, windowMs: 60_000 }, // 1 per minute
+  "auth:verify": { max: 10, windowMs: 60_000 }, // 10 per minute
+  "api:embed": { max: 100, windowMs: 60_000 }, // 100 per minute per IP
+  "api:forms:write": { max: 30, windowMs: 60_000 }, // 30 per minute per user
 };
 
 type LimitKey = keyof typeof LIMITS;
 
 export async function checkRateLimit(
   key: LimitKey,
-  identifier: string
+  identifier: string,
 ): Promise<{ allowed: boolean; retryAfterMs: number }> {
   const now = Date.now();
   const limit = LIMITS[key];
@@ -329,10 +337,7 @@ export async function checkRateLimit(
 
   // Get current count
   const row = await db.query.rateLimits.findFirst({
-    where: and(
-      eq(rateLimits.key, dbKey),
-      eq(rateLimits.windowStart, windowStart)
-    )
+    where: and(eq(rateLimits.key, dbKey), eq(rateLimits.windowStart, windowStart)),
   });
 
   const count = row?.count ?? 1;
@@ -348,10 +353,11 @@ export async function checkRateLimit(
 **Cleanup:** A scheduled job every 5 minutes deletes expired rate-limit rows (`windowStart < now - maxWindow`). Run via `setInterval` in the Node process.
 
 **Rate limit headers on every response:**
+
 ```ts
-headers.set('X-RateLimit-Limit', String(limit.max));
-headers.set('X-RateLimit-Remaining', String(Math.max(0, remaining)));
-headers.set('X-RateLimit-Reset', String(windowStart + limit.windowMs));
+headers.set("X-RateLimit-Limit", String(limit.max));
+headers.set("X-RateLimit-Remaining", String(Math.max(0, remaining)));
+headers.set("X-RateLimit-Reset", String(windowStart + limit.windowMs));
 ```
 
 ### 3. Input Validation with Zod
@@ -359,8 +365,9 @@ headers.set('X-RateLimit-Reset', String(windowStart + limit.windowMs));
 Every API endpoint must validate request body/params with Zod before processing.
 
 **Pattern:**
+
 ```ts
-import { z } from 'zod';
+import { z } from "zod";
 
 const SignupSchema = z.object({
   email: z.string().email().max(255),
@@ -372,22 +379,23 @@ const SignupSchema = z.object({
 const parsed = SignupSchema.safeParse(await request.json());
 if (!parsed.success) {
   return new Response(
-    JSON.stringify({ error: 'Validation failed', details: parsed.error.flatten() }),
-    { status: 400 }
+    JSON.stringify({ error: "Validation failed", details: parsed.error.flatten() }),
+    { status: 400 },
   );
 }
 ```
 
 **Audit checklist — every API route needs a Zod schema:**
+
 - POST /api/auth/signup
 - POST /api/auth/login
 - POST /api/auth/forgot-password
 - POST /api/auth/reset-password
 - POST /api/auth/resend-verification
-- POST/PUT/DELETE /api/forms/*
-- POST /api/domains/*
+- POST/PUT/DELETE /api/forms/\*
+- POST /api/domains/\*
 - GET /api/embed/[formId] (validate formId is UUID)
-- POST /api/submissions/*
+- POST /api/submissions/\*
 
 **Form definition validation:** Use the formbaker library's `create()` to validate form definitions on save. Reject invalid definitions with a 422.
 
@@ -402,30 +410,27 @@ export function onRequest(context, next) {
 
   // CSP: Allow our own scripts, Google Fonts (if used), no inline scripts
   response.headers.set(
-    'Content-Security-Policy',
-    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'"
+    "Content-Security-Policy",
+    "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self'; frame-ancestors 'self'; form-action 'self'; base-uri 'self'; object-src 'none'",
   );
 
   // Don't allow framing (except for embed pages — override there)
-  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set("X-Frame-Options", "DENY");
 
   // MIME type sniffing prevention
-  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set("X-Content-Type-Options", "nosniff");
 
   // Referrer policy
-  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
 
   // Permissions policy
-  response.headers.set(
-    'Permissions-Policy',
-    'camera=(), microphone=(), geolocation=()'
-  );
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
   // HSTS (for production — 1 year, include subdomains)
   if (import.meta.env.PROD) {
     response.headers.set(
-      'Strict-Transport-Security',
-      'max-age=31536000; includeSubDomains; preload'
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains; preload",
     );
   }
 
@@ -437,29 +442,29 @@ export function onRequest(context, next) {
 
 ### 5. Session Security
 
-| Measure | Implementation |
-|---|---|
-| **Cookie flags** | `HttpOnly, Secure, SameSite=Lax, Path=/` |
-| **Session expiry** | 7 days. Extend on activity (rolling expiry). Hard cap at 30 days |
-| **Concurrent session limit** | Max 5 active sessions per user. Oldest expires when limit exceeded |
-| **Session invalidation** | On password change: delete ALL sessions for that user |
-| **Session ID rotation** | After login (prevents session fixation) |
-| **Secure session ID** | `crypto.randomUUID()` or `crypto.randomBytes(32).toString('hex')` — NOT sequential |
-| **DB cleanup** | Delete expired sessions hourly via interval |
-| **Activity tracking** | `sessions.lastActivityAt` column, updated per request if > 1 min since last update |
+| Measure                      | Implementation                                                                     |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| **Cookie flags**             | `HttpOnly, Secure, SameSite=Lax, Path=/`                                           |
+| **Session expiry**           | 7 days. Extend on activity (rolling expiry). Hard cap at 30 days                   |
+| **Concurrent session limit** | Max 5 active sessions per user. Oldest expires when limit exceeded                 |
+| **Session invalidation**     | On password change: delete ALL sessions for that user                              |
+| **Session ID rotation**      | After login (prevents session fixation)                                            |
+| **Secure session ID**        | `crypto.randomUUID()` or `crypto.randomBytes(32).toString('hex')` — NOT sequential |
+| **DB cleanup**               | Delete expired sessions hourly via interval                                        |
+| **Activity tracking**        | `sessions.lastActivityAt` column, updated per request if > 1 min since last update |
 
 ### 6. Additional Hardening
 
-| Area | Mitigation |
-|---|---|
-| **Password storage** | bcryptjs with cost factor 12 |
-| **SQL injection** | Drizzle parameterized queries (already safe), no raw SQL strings |
-| **Environment variables** | `.env` in `.gitignore`. Validate all required vars on startup |
-| **Error responses** | Never expose stack traces. `NODE_ENV=production` catches uncaught exceptions |
-| **Dependency audit** | `npm audit` in CI. Dependabot or Renovate configured |
-| **Brute force** | Rate limiting on login (5/min). Lockout after 10 failed attempts from same IP in 15 min |
-| **SRI (Subresource Integrity)** | Not needed — all assets are self-hosted, no CDN scripts |
-| **Trusted types** | Optional. Can enforce via CSP if using no inline scripts |
+| Area                            | Mitigation                                                                              |
+| ------------------------------- | --------------------------------------------------------------------------------------- |
+| **Password storage**            | bcryptjs with cost factor 12                                                            |
+| **SQL injection**               | Drizzle parameterized queries (already safe), no raw SQL strings                        |
+| **Environment variables**       | `.env` in `.gitignore`. Validate all required vars on startup                           |
+| **Error responses**             | Never expose stack traces. `NODE_ENV=production` catches uncaught exceptions            |
+| **Dependency audit**            | `npm audit` in CI. Dependabot or Renovate configured                                    |
+| **Brute force**                 | Rate limiting on login (5/min). Lockout after 10 failed attempts from same IP in 15 min |
+| **SRI (Subresource Integrity)** | Not needed — all assets are self-hosted, no CDN scripts                                 |
+| **Trusted types**               | Optional. Can enforce via CSP if using no inline scripts                                |
 
 ---
 
@@ -553,13 +558,14 @@ services:
     ports:
       - "4321:4321"
     volumes:
-      - db_data:/data        # SQLite DB persists here
-      - ./backups:/backups   # DB backup directory (for cron script)
+      - db_data:/data # SQLite DB persists here
+      - ./backups:/backups # DB backup directory (for cron script)
     env_file:
       - .env.production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4321/api/health"]
+      test:
+        ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4321/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -687,34 +693,34 @@ For on-premises enterprise deployments:
 
 ```ts
 // src/lib/license.ts
-import crypto from 'node:crypto';
-import { db } from './db';
+import crypto from "node:crypto";
+import { db } from "./db";
 
 interface License {
   customerId: string;
   maxUsers: number;
   maxForms: number;
   expiresAt: number | null; // null = perpetual
-  features: string[];       // e.g. ['custom-domains', 'sso', 'audit-log']
+  features: string[]; // e.g. ['custom-domains', 'sso', 'audit-log']
 }
 
 export function validateLicense(key: string): License | null {
   try {
     // License key format: base64(JSON) || base64(signature)
-    const [payloadB64, signatureB64] = key.split('.');
-    const payload = JSON.parse(Buffer.from(payloadB64, 'base64').toString());
+    const [payloadB64, signatureB64] = key.split(".");
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64").toString());
 
     // Verify signature with public key
     const publicKey = import.meta.env.LICENSE_PUBLIC_KEY;
     if (!publicKey) {
       // Dev mode: accept any key
-      console.warn('[license] No LICENSE_PUBLIC_KEY set — accepting any key in dev');
+      console.warn("[license] No LICENSE_PUBLIC_KEY set — accepting any key in dev");
       return payload;
     }
 
-    const verifier = crypto.createVerify('SHA256');
+    const verifier = crypto.createVerify("SHA256");
     verifier.update(payloadB64);
-    const valid = verifier.verify(publicKey, signatureB64, 'base64');
+    const valid = verifier.verify(publicKey, signatureB64, "base64");
 
     if (!valid) return null;
 
@@ -733,8 +739,8 @@ export function validateLicense(key: string): License | null {
 ```ts
 // src/pages/api/health.ts
 export const prerender = false;
-import type { APIRoute } from 'astro';
-import { db } from '../../lib/db';
+import type { APIRoute } from "astro";
+import { db } from "../../lib/db";
 
 export const GET: APIRoute = async () => {
   const checks: Record<string, boolean> = {};
@@ -752,15 +758,15 @@ export const GET: APIRoute = async () => {
 
   return new Response(
     JSON.stringify({
-      status: healthy ? 'healthy' : 'unhealthy',
+      status: healthy ? "healthy" : "unhealthy",
       timestamp: new Date().toISOString(),
-      version: process.env.npm_package_version || '0.0.1',
+      version: process.env.npm_package_version || "0.0.1",
       checks,
     }),
     {
       status,
-      headers: { 'Content-Type': 'application/json' },
-    }
+      headers: { "Content-Type": "application/json" },
+    },
   );
 };
 ```
@@ -769,30 +775,30 @@ export const GET: APIRoute = async () => {
 
 ```ts
 // scripts/backup.ts — run via cron or docker-compose scheduled task
-import { execSync } from 'node:child_process';
-import { mkdirSync, existsSync, renameSync } from 'node:fs';
-import { join } from 'node:path';
+import { execSync } from "node:child_process";
+import { mkdirSync, existsSync, renameSync } from "node:fs";
+import { join } from "node:path";
 
-const DB_PATH = process.env.DATABASE_PATH || '/data/formbaker.db';
-const BACKUP_DIR = process.env.BACKUP_DIR || '/backups';
+const DB_PATH = process.env.DATABASE_PATH || "/data/formbaker.db";
+const BACKUP_DIR = process.env.BACKUP_DIR || "/backups";
 const MAX_BACKUPS = 30; // keep 30 days of backups
 
-const now = new Date().toISOString().replace(/[:.]/g, '-');
+const now = new Date().toISOString().replace(/[:.]/g, "-");
 const backupFile = join(BACKUP_DIR, `formbaker-${now}.db`);
 
 mkdirSync(BACKUP_DIR, { recursive: true });
 
 // SQLite backup via .backup command
 execSync(`sqlite3 "${DB_PATH}" ".backup '${backupFile}'"`, {
-  stdio: 'inherit',
+  stdio: "inherit",
 });
 
 console.log(`[backup] Created: ${backupFile}`);
 
 // Rotate old backups
-const { readdirSync, statSync, unlinkSync } = require('node:fs');
+const { readdirSync, statSync, unlinkSync } = require("node:fs");
 const files = readdirSync(BACKUP_DIR)
-  .filter((f: string) => f.startsWith('formbaker-') && f.endsWith('.db'))
+  .filter((f: string) => f.startsWith("formbaker-") && f.endsWith(".db"))
   .map((f: string) => ({ name: f, time: statSync(join(BACKUP_DIR, f)).mtimeMs }))
   .sort((a: any, b: any) => b.time - a.time);
 
@@ -810,7 +816,7 @@ for (const file of files.slice(MAX_BACKUPS)) {
 // src/lib/logger.ts
 // Simple structured logger — upgrade path to pino/winston later
 
-type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+type LogLevel = "debug" | "info" | "warn" | "error";
 
 interface LogEntry {
   level: LogLevel;
@@ -831,16 +837,17 @@ function log(level: LogLevel, message: string, extra?: Record<string, unknown>) 
 }
 
 export const logger = {
-  debug: (msg: string, extra?: Record<string, unknown>) => log('debug', msg, extra),
-  info:  (msg: string, extra?: Record<string, unknown>) => log('info', msg, extra),
-  warn:  (msg: string, extra?: Record<string, unknown>) => log('warn', msg, extra),
-  error: (msg: string, extra?: Record<string, unknown>) => log('error', msg, extra),
+  debug: (msg: string, extra?: Record<string, unknown>) => log("debug", msg, extra),
+  info: (msg: string, extra?: Record<string, unknown>) => log("info", msg, extra),
+  warn: (msg: string, extra?: Record<string, unknown>) => log("warn", msg, extra),
+  error: (msg: string, extra?: Record<string, unknown>) => log("error", msg, extra),
 };
 ```
 
 ### Deployment Guide
 
 Create `docs/DEPLOYMENT.md`:
+
 1. System requirements (Node 22+, 1GB RAM, 10GB disk)
 2. Clone repo, copy `.env.example` → `.env.production`, fill values
 3. `docker compose up -d`
@@ -857,11 +864,13 @@ Create `docs/DEPLOYMENT.md`:
 ### Loading States & Error Boundaries
 
 **Loading states:** Every /app page that fetches data shows a skeleton loader:
+
 - Dashboard: 3 skeleton cards
 - Form list: skeleton table rows
 - Form editor: skeleton layout matching the real UI
 
 **Error boundaries:** Each /app page wraps its main content in a try/catch. On error, show an error card with:
+
 - "Something went wrong" message
 - Retry button
 - Error ID for debugging (no stack trace)
@@ -879,6 +888,7 @@ Create `docs/DEPLOYMENT.md`:
 **Breakpoints:** Mobile (< 768px), Tablet (768-1024px), Desktop (> 1024px)
 
 **Audit every page:**
+
 - /app/dashboard: stack cards vertically on mobile
 - /app/forms/[id]/edit: form builder adapts — sidebar collapses to bottom on mobile
 - /app/settings: tabs become vertical on mobile
@@ -919,62 +929,66 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 
 ### Accessibility
 
-| Check | Target |
-|---|---|
-| **Color contrast** | All text ≥ 4.5:1 against background (WCAG AA) |
-| **Keyboard navigation** | Tab through all interactive elements. Focus rings visible |
-| **Form labels** | Every input has a `<label>` with `for` attribute |
-| **alt text** | Every `<img>` has `alt` attribute (descriptive or empty for decorative) |
-| **ARIA landmarks** | `<nav>`, `<main>`, `<header>`, `<footer>` on every layout |
-| **Screen reader** | Test with VoiceOver (macOS) or NVDA (Windows). Error messages use `aria-live` |
-| **Skip link** | "Skip to content" link as first focusable element |
-| **Touch targets** | All buttons/links ≥ 44×44px on mobile |
-| **Focus order** | Logical tab order. No `tabindex` > 0 |
+| Check                   | Target                                                                        |
+| ----------------------- | ----------------------------------------------------------------------------- |
+| **Color contrast**      | All text ≥ 4.5:1 against background (WCAG AA)                                 |
+| **Keyboard navigation** | Tab through all interactive elements. Focus rings visible                     |
+| **Form labels**         | Every input has a `<label>` with `for` attribute                              |
+| **alt text**            | Every `<img>` has `alt` attribute (descriptive or empty for decorative)       |
+| **ARIA landmarks**      | `<nav>`, `<main>`, `<header>`, `<footer>` on every layout                     |
+| **Screen reader**       | Test with VoiceOver (macOS) or NVDA (Windows). Error messages use `aria-live` |
+| **Skip link**           | "Skip to content" link as first focusable element                             |
+| **Touch targets**       | All buttons/links ≥ 44×44px on mobile                                         |
+| **Focus order**         | Logical tab order. No `tabindex` > 0                                          |
 
 ### SEO
 
-| Item | Implementation |
-|---|---|
-| **Sitemap** | `@astrojs/sitemap` integration. Auto-generates sitemap.xml |
-| **Meta tags** | Every page has `<title>`, `<meta name="description">`, Open Graph tags |
-| **Canonical URLs** | `<link rel="canonical">` on every page |
-| **robots.txt** | Starlight auto-generates. Ensure it exists in `public/robots.txt` |
-| **Structured data** | JSON-LD for docs (TechArticle), landing (Organization), pricing (Product) |
-| **Performance** | Lighthouse score ≥ 90 for all pages. `< 100KB CSS`, minimal JS on landing/docs |
+| Item                | Implementation                                                                 |
+| ------------------- | ------------------------------------------------------------------------------ |
+| **Sitemap**         | `@astrojs/sitemap` integration. Auto-generates sitemap.xml                     |
+| **Meta tags**       | Every page has `<title>`, `<meta name="description">`, Open Graph tags         |
+| **Canonical URLs**  | `<link rel="canonical">` on every page                                         |
+| **robots.txt**      | Starlight auto-generates. Ensure it exists in `public/robots.txt`              |
+| **Structured data** | JSON-LD for docs (TechArticle), landing (Organization), pricing (Product)      |
+| **Performance**     | Lighthouse score ≥ 90 for all pages. `< 100KB CSS`, minimal JS on landing/docs |
 
 ### Performance Audit
 
-| Target | How |
-|---|---|
-| **Docs pages (SSG)** | Already fast. Lighthouse 95+ |
-| **Landing page** | No heavy JS. Load fonts inline or with `font-display: swap` |
-| **App pages (SSR)** | Cache DB queries where possible. Use streaming responses |
-| **API responses** | < 100ms p50 for read endpoints. < 200ms p95 |
-| **Embed endpoint** | Must be < 50ms p50. Cache form definitions in memory |
-| **Assets** | `sharp` for image optimization (already installed). Compress SVGs |
-| **Bundle size** | Analyze with `astro build --experimental-bundle-analysis`. Split code |
+| Target               | How                                                                   |
+| -------------------- | --------------------------------------------------------------------- |
+| **Docs pages (SSG)** | Already fast. Lighthouse 95+                                          |
+| **Landing page**     | No heavy JS. Load fonts inline or with `font-display: swap`           |
+| **App pages (SSR)**  | Cache DB queries where possible. Use streaming responses              |
+| **API responses**    | < 100ms p50 for read endpoints. < 200ms p95                           |
+| **Embed endpoint**   | Must be < 50ms p50. Cache form definitions in memory                  |
+| **Assets**           | `sharp` for image optimization (already installed). Compress SVGs     |
+| **Bundle size**      | Analyze with `astro build --experimental-bundle-analysis`. Split code |
 
 ---
 
 ## Files to Create
 
 ### Email
+
 - `docs/src/lib/email.ts` — Resend client wrapper
 - `docs/src/lib/email-templates/verify-email.ts` — Verification email HTML
 - `docs/src/lib/email-templates/reset-password.ts` — Password reset email HTML
 
 ### Auth Routes (added to existing auth module)
+
 - `docs/src/pages/api/auth/verify.ts` — GET verify?token=xxx
 - `docs/src/pages/api/auth/resend-verification.ts` — POST resend verification email
 - `docs/src/pages/api/auth/forgot-password.ts` — POST initiate password reset
 - `docs/src/pages/api/auth/reset-password.ts` — POST execute password reset
 
 ### Auth Pages
+
 - `docs/src/pages/verify-prompt.astro` — Page shown to unverified users
 - `docs/src/pages/reset-password.astro` — Reset password form page
 - `docs/src/pages/forgot-password.astro` — Forgot password request page
 
 ### Custom Domains
+
 - `docs/src/pages/api/domains/index.ts` — POST create, GET list
 - `docs/src/pages/api/domains/[id].ts` — DELETE, GET
 - `docs/src/pages/api/domains/[id]/verify.ts` — POST trigger DNS verification
@@ -982,6 +996,7 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 - `docs/src/pages/app/settings/domains.astro` — Domain management UI
 
 ### Security
+
 - `docs/src/lib/csrf.ts` — CSRF token generation and validation
 - `docs/src/lib/rate-limit.ts` — Rate limiter
 - `docs/src/lib/logger.ts` — Structured logger
@@ -990,6 +1005,7 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 - `docs/src/lib/validation-schemas.ts` — Shared Zod schemas for all API routes
 
 ### Infrastructure
+
 - `docs/Dockerfile` — Multi-stage Docker build
 - `../../docker-compose.yml` — (repo root)
 - `../../nginx.conf` — (repo root) Nginx reverse proxy config
@@ -999,6 +1015,7 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 - `docs/src/pages/api/health.ts` — Health check endpoint
 
 ### Polish
+
 - `docs/src/pages/404.astro` — Custom 404
 - `docs/src/pages/500.astro` — Custom 500
 - `docs/src/styles/theme.css` — CSS custom properties for light/dark theme
@@ -1009,6 +1026,7 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 - `docs/public/robots.txt` — (if not auto-generated)
 
 ### Database Migration Additions
+
 - Column: `users.verificationToken` TEXT
 - Column: `users.verificationTokenExpiresAt` INTEGER
 - Column: `users.resetToken` TEXT
@@ -1022,6 +1040,7 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 ## Launch Checklist
 
 ### Pre-Launch Verification
+
 - [ ] All API endpoints have Zod validation
 - [ ] All POST/PUT/DELETE endpoints enforce CSRF
 - [ ] Rate limiting active on auth and embed endpoints
@@ -1038,13 +1057,14 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 - [ ] Dark mode: toggle works, persists preference in localStorage
 - [ ] Accessibility: keyboard navigable, screen-reader tested for critical flows
 - [ ] Sitemap accessible at `/sitemap-index.xml`
-- [ ] robots.txt allows docs, blocks /app/*
+- [ ] robots.txt allows docs, blocks /app/\*
 - [ ] Error pages: visit `/nonexistent` returns custom 404, simulated API failure shows error card
 - [ ] npm audit reports 0 critical/high vulnerabilities
 - [ ] All env vars documented in `.env.example`
 - [ ] DEPLOYMENT.md is complete and step-by-step testable
 
 ### Go/No-Go Decision
+
 - [ ] Smoke test: signup → verify email → login → create form → embed form → submit via embed
 - [ ] Performance: p95 API latency < 200ms under load
 - [ ] Backup restore tested: can restore from backup and start server successfully
@@ -1053,4 +1073,4 @@ Respect `prefers-color-scheme` media query. Provide a manual toggle in `/app/set
 
 ---
 
-*End of Phase 5 plan.*
+_End of Phase 5 plan._

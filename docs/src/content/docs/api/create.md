@@ -8,7 +8,7 @@ function create(
   context: FormContext,
   nodes?: Node[],
   dependencies?: Dependency[],
-): FormbakerInstance
+): FormbakerInstance;
 ```
 
 The `create()` function is the entry point. It produces an immutable form
@@ -18,8 +18,8 @@ instance.
 
 ### `context`
 
-| Property | Type | Description |
-|----------|------|-------------|
+| Property     | Type     | Description                            |
+| ------------ | -------- | -------------------------------------- |
 | `pluginName` | `string` | Name of a registered validation plugin |
 
 ```ts
@@ -32,13 +32,10 @@ const form = create({ pluginName: "zod" });
 Array of node definitions. Each node is a field or section.
 
 ```ts
-const form = create(
-  { pluginName: "zod" },
-  [
-    { id: "name", type: "text", question: "Name", required: true },
-    { id: "personal", type: "section", label: "Personal Info" },
-  ],
-);
+const form = create({ pluginName: "zod" }, [
+  { id: "name", type: "text", question: "Name", required: true },
+  { id: "personal", type: "section", label: "Personal Info" },
+]);
 ```
 
 Omit to start with an empty form and add nodes later.
@@ -49,11 +46,9 @@ Array of dependency definitions. Each controls visibility of a target
 node.
 
 ```ts
-const form = create(
-  { pluginName: "zod" },
-  nodes,
-  [{ target: "pet_name", source: "has_pet", condition: { equals: true } }],
-);
+const form = create({ pluginName: "zod" }, nodes, [
+  { target: "pet_name", source: "has_pet", condition: { equals: true } },
+]);
 ```
 
 ## Returns

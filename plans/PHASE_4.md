@@ -14,18 +14,20 @@ All additions to `docs/src/db/schema.ts`. Use `drizzle-orm/sqlite-core`.
 
 ```ts
 import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
-import { forms } from "./schema";        // from Phase 2
-import { users } from "./schema";        // from Phase 1
+import { forms } from "./schema"; // from Phase 2
+import { users } from "./schema"; // from Phase 1
 
 export const formSubmissions = sqliteTable("form_submissions", {
-  id:          text("id").primaryKey(),           // crypto.randomUUID()
-  formId:      text("form_id").notNull().references(() => forms.id, { onDelete: "cascade" }),
-  data:        text("data").notNull(),             // JSON blob — the submitted field values
-  submittedAt: integer("submitted_at").notNull(),  // Unix ms
-  ip:          text("ip"),                         // Hashed or anonymized IP
-  userAgent:   text("user_agent"),                 // Raw UA string
-  referrer:    text("referrer"),                   // URL of embedding page
-  isSpam:      integer("is_spam").default(0),       // 0 = clean, 1 = flagged
+  id: text("id").primaryKey(), // crypto.randomUUID()
+  formId: text("form_id")
+    .notNull()
+    .references(() => forms.id, { onDelete: "cascade" }),
+  data: text("data").notNull(), // JSON blob — the submitted field values
+  submittedAt: integer("submitted_at").notNull(), // Unix ms
+  ip: text("ip"), // Hashed or anonymized IP
+  userAgent: text("user_agent"), // Raw UA string
+  referrer: text("referrer"), // URL of embedding page
+  isSpam: integer("is_spam").default(0), // 0 = clean, 1 = flagged
 });
 ```
 
@@ -33,18 +35,20 @@ export const formSubmissions = sqliteTable("form_submissions", {
 
 ```ts
 export const subscriptions = sqliteTable("subscriptions", {
-  id:                   text("id").primaryKey(),
-  userId:               text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
   stripeSubscriptionId: text("stripe_subscription_id").notNull().unique(),
-  stripePriceId:        text("stripe_price_id").notNull(),
-  stripeCustomerId:     text("stripe_customer_id").notNull(),
-  status:               text("status").notNull(),   // active, past_due, canceled, incomplete
-  plan:                 text("plan").notNull(),     // "pro" | "enterprise"
-  currentPeriodStart:   integer("current_period_start").notNull(),
-  currentPeriodEnd:     integer("current_period_end").notNull(),
-  cancelAtPeriodEnd:    integer("cancel_at_period_end").default(0),
-  createdAt:            integer("created_at").notNull(),
-  updatedAt:            integer("updated_at").notNull(),
+  stripePriceId: text("stripe_price_id").notNull(),
+  stripeCustomerId: text("stripe_customer_id").notNull(),
+  status: text("status").notNull(), // active, past_due, canceled, incomplete
+  plan: text("plan").notNull(), // "pro" | "enterprise"
+  currentPeriodStart: integer("current_period_start").notNull(),
+  currentPeriodEnd: integer("current_period_end").notNull(),
+  cancelAtPeriodEnd: integer("cancel_at_period_end").default(0),
+  createdAt: integer("created_at").notNull(),
+  updatedAt: integer("updated_at").notNull(),
 });
 ```
 
@@ -61,14 +65,20 @@ plan:             text("plan").notNull().default("free"), // "free" | "pro" | "e
 ### 4. `submissionCounts` table (monthly quota tracking)
 
 ```ts
-export const submissionCounts = sqliteTable("submission_counts", {
-  id:        text("id").primaryKey(),
-  userId:    text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  yearMonth: text("year_month").notNull(),   // "2026-07" format
-  count:     integer("count").notNull().default(0),
-}, (t) => ({
-  uniq: uniqueIndex("uq_user_month").on(t.userId, t.yearMonth),
-}));
+export const submissionCounts = sqliteTable(
+  "submission_counts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    yearMonth: text("year_month").notNull(), // "2026-07" format
+    count: integer("count").notNull().default(0),
+  },
+  (t) => ({
+    uniq: uniqueIndex("uq_user_month").on(t.userId, t.yearMonth),
+  }),
+);
 ```
 
 ### 5. Migration file
@@ -156,12 +166,12 @@ ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free';
 
 ### Webhook Events Handled
 
-| Event | Action |
-|---|---|
-| `checkout.session.completed` | Create subscription row, set `user.plan = "pro"`, set `user.stripeCustomerId` |
-| `customer.subscription.updated` | Update subscription status/period in DB |
-| `customer.subscription.deleted` | Set subscription status to `canceled`, downgrade user to `free`, keep data |
-| `invoice.payment_failed` | Set subscription status to `past_due`, optionally notify user |
+| Event                           | Action                                                                        |
+| ------------------------------- | ----------------------------------------------------------------------------- |
+| `checkout.session.completed`    | Create subscription row, set `user.plan = "pro"`, set `user.stripeCustomerId` |
+| `customer.subscription.updated` | Update subscription status/period in DB                                       |
+| `customer.subscription.deleted` | Set subscription status to `canceled`, downgrade user to `free`, keep data    |
+| `invoice.payment_failed`        | Set subscription status to `past_due`, optionally notify user                 |
 
 ### Webhook Security
 
@@ -200,6 +210,7 @@ npm install -D @types/chart.js  # if needed
 **Purpose:** Public endpoint for iframe-embedded forms to submit data. No auth. CORS enabled. Rate limited. Spam checked.
 
 **Request:**
+
 ```
 POST /api/embed/form_abc123/submit
 Content-Type: application/json
@@ -215,20 +226,24 @@ Content-Type: application/json
 ```
 
 **Rate Limiting (in-memory, keyed by IP):**
+
 - 60 submissions per minute per IP
 - 10 submissions per minute per form ID + IP
 
 **Spam Protection:**
+
 - Honeypot field: if `honeypot` is non-empty, flag as spam (still store, mark `isSpam = 1`)
 - Optional: reCAPTCHA token validation (Phase 4.5)
 - Check `referrer` header — if empty or mismatch, flag
 
 **Quota Check:**
+
 - Look up form owner's plan
 - Query `submissionCounts` for the current year-month
 - If over plan limit (free: 100, pro: 10,000, enterprise: unlimited), return 429
 
 **Response (201):**
+
 ```json
 {
   "id": "sub_xyz789",
@@ -237,6 +252,7 @@ Content-Type: application/json
 ```
 
 **Response (429 — rate limited):**
+
 ```json
 {
   "error": "Too many requests. Try again later."
@@ -244,6 +260,7 @@ Content-Type: application/json
 ```
 
 **Response (429 — quota exceeded):**
+
 ```json
 {
   "error": "Monthly submission limit reached for this form."
@@ -251,6 +268,7 @@ Content-Type: application/json
 ```
 
 **Response (400):**
+
 ```json
 {
   "error": "Invalid submission data"
@@ -258,6 +276,7 @@ Content-Type: application/json
 ```
 
 **CORS Headers:**
+
 ```
 Access-Control-Allow-Origin: *
 Access-Control-Allow-Methods: POST, OPTIONS
@@ -273,11 +292,13 @@ Access-Control-Allow-Headers: Content-Type
 **Auth:** Session middleware required. Must be form owner.
 
 **Query params:**
+
 ```
 ?page=1&limit=50&sort=submitted_at&order=desc&search=janedoe&isSpam=0
 ```
 
 **Response (200):**
+
 ```json
 {
   "submissions": [
@@ -286,7 +307,7 @@ Access-Control-Allow-Headers: Content-Type
       "formId": "form_abc123",
       "data": { "email": "user@example.com", "name": "Jane Doe" },
       "submittedAt": 1719619200000,
-      "ip": "a1b2c3...",       // hashed
+      "ip": "a1b2c3...", // hashed
       "userAgent": "Mozilla/5.0 ...",
       "referrer": "https://customer-site.com/contact",
       "isSpam": 0
@@ -300,6 +321,7 @@ Access-Control-Allow-Headers: Content-Type
 ```
 
 **Response (403):**
+
 ```json
 {
   "error": "You do not own this form"
@@ -321,6 +343,7 @@ Access-Control-Allow-Headers: Content-Type
 **Purpose:** Delete a submission. Auth required. Owner only.
 
 **Response (200):**
+
 ```json
 {
   "deleted": true
@@ -334,14 +357,16 @@ Access-Control-Allow-Headers: Content-Type
 **Purpose:** Bulk delete submissions. Auth required. Owner only. Supports filters.
 
 **Request body:**
+
 ```json
 {
-  "isSpam": true,    // delete all spam
-  "before": 1717200000000  // optional: delete submissions before this timestamp
+  "isSpam": true, // delete all spam
+  "before": 1717200000000 // optional: delete submissions before this timestamp
 }
 ```
 
 **Response (200):**
+
 ```json
 {
   "deleted": 23
@@ -365,11 +390,13 @@ Includes all non-spam submissions. Headers derived from form fields.
 **Purpose:** Analytics data for the form owner's dashboard. Auth required.
 
 **Query params:**
+
 ```
 ?range=30d   // 7d, 30d, 90d, 1y, all
 ```
 
 **Response (200):**
+
 ```json
 {
   "formId": "form_abc123",
@@ -395,6 +422,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 **Purpose:** Dashboard overview for authenticated user. Summary across all forms.
 
 **Response (200):**
+
 ```json
 {
   "totalForms": 5,
@@ -431,6 +459,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 **Auth:** Session required.
 
 **Request:**
+
 ```json
 {
   "priceId": "price_abc123",
@@ -440,6 +469,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 ```
 
 **Response (200):**
+
 ```json
 {
   "url": "https://checkout.stripe.com/c/pay/cs_test_abc..."
@@ -447,6 +477,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 ```
 
 **Implementation:**
+
 1. Get or create Stripe customer (via `stripe.customers.create()` with email)
 2. Save `stripeCustomerId` on user row if new
 3. Call `stripe.checkout.sessions.create()` with mode: `subscription`
@@ -470,6 +501,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 **Purpose:** Create Stripe Customer Portal session. Auth required.
 
 **Request:**
+
 ```json
 {
   "returnUrl": "https://formbaker.dev/app/settings/billing"
@@ -477,6 +509,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 ```
 
 **Response (200):**
+
 ```json
 {
   "url": "https://billing.stripe.com/p/session/..."
@@ -492,6 +525,7 @@ Includes all non-spam submissions. Headers derived from form fields.
 **Auth:** Session required.
 
 **Response (200):**
+
 ```json
 {
   "plan": "pro",
@@ -515,50 +549,50 @@ Includes all non-spam submissions. Headers derived from form fields.
 
 ### New files
 
-| File | Description |
-|---|---|
-| `docs/src/db/schema.ts` | Union file that re-exports all tables from individual schema files (Phase 1-4) |
-| `docs/src/db/submissions-schema.ts` | `formSubmissions` and `submissionCounts` table definitions |
-| `docs/src/db/subscriptions-schema.ts` | `subscriptions` table definition |
-| `docs/drizzle/0002_submissions_billing.sql` | SQL migration file |
-| `docs/src/lib/rate-limit.ts` | In-memory rate limiter (sliding window per IP and per form+IP). Key cleanup on interval. |
-| `docs/src/lib/spam.ts` | Spam detection: honeypot check, referrer analysis, optional reCAPTCHA verifier |
-| `docs/src/lib/quota.ts` | Plan/quota checker: `checkSubmissionQuota(userId)` — queries `submissionCounts`, compares against plan limits. `incrementSubmissionCount(userId)` |
-| `docs/src/lib/stripe.ts` | Singleton Stripe client (`new Stripe(process.env.STRIPE_SECRET_KEY)`), helper functions |
-| `docs/src/lib/analytics.ts` | Query helpers: `getSubmissionsOverTime(formId, range)`, `getOverviewAnalytics(userId)` |
-| `docs/src/lib/csv.ts` | Converts submission array to CSV string |
-| `docs/src/pages/api/embed/[formId]/submit.ts` | Public submission endpoint |
-| `docs/src/pages/api/forms/[formId]/submissions/index.ts` | List submissions (GET), bulk delete (DELETE) |
-| `docs/src/pages/api/forms/[formId]/submissions/[subId].ts` | Get single (GET), delete single (DELETE) |
-| `docs/src/pages/api/forms/[formId]/submissions.csv.ts` | CSV export |
-| `docs/src/pages/api/forms/[formId]/analytics.ts` | Per-form analytics endpoint |
-| `docs/src/pages/api/analytics/overview.ts` | Dashboard overview analytics |
-| `docs/src/pages/api/stripe/create-checkout-session.ts` | Checkout session creation |
-| `docs/src/pages/api/stripe/webhook.ts` | Stripe webhook receiver |
-| `docs/src/pages/api/stripe/create-portal.ts` | Customer portal session |
-| `docs/src/pages/api/account/plan.ts` | Current plan info |
-| `docs/src/pages/app/dashboard/index.astro` | Analytics dashboard page |
-| `docs/src/pages/app/dashboard/analytics.astro` | Full analytics page with Chart.js |
-| `docs/src/pages/app/forms/[id]/submissions.astro` | Submission list with table + search |
-| `docs/src/pages/app/settings/billing.astro` | Billing page — plan display, upgrade button, portal link, usage meters |
-| `docs/src/components/analytics/SubmissionsChart.astro` | Chart.js `<canvas>` + JS for submissions-over-time line chart |
-| `docs/src/components/analytics/FormBreakdown.astro` | Horizontal bar chart of top forms |
-| `docs/src/components/analytics/ConversionCard.astro` | Metric card showing conversion rate |
-| `docs/src/components/submissions/SubmissionTable.astro` | Paginated table component |
-| `docs/src/components/submissions/SubmissionDetail.astro` | Expandable submission detail view |
-| `docs/src/components/billing/PlanCard.astro` | Plan comparison card for billing page |
-| `docs/src/components/billing/UpgradeButton.astro` | Button that calls `/api/stripe/create-checkout-session` and redirects |
-| `docs/src/components/billing/UsageMeter.astro` | Progress bar showing forms used / limit, submissions used / limit |
+| File                                                       | Description                                                                                                                                       |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/src/db/schema.ts`                                    | Union file that re-exports all tables from individual schema files (Phase 1-4)                                                                    |
+| `docs/src/db/submissions-schema.ts`                        | `formSubmissions` and `submissionCounts` table definitions                                                                                        |
+| `docs/src/db/subscriptions-schema.ts`                      | `subscriptions` table definition                                                                                                                  |
+| `docs/drizzle/0002_submissions_billing.sql`                | SQL migration file                                                                                                                                |
+| `docs/src/lib/rate-limit.ts`                               | In-memory rate limiter (sliding window per IP and per form+IP). Key cleanup on interval.                                                          |
+| `docs/src/lib/spam.ts`                                     | Spam detection: honeypot check, referrer analysis, optional reCAPTCHA verifier                                                                    |
+| `docs/src/lib/quota.ts`                                    | Plan/quota checker: `checkSubmissionQuota(userId)` — queries `submissionCounts`, compares against plan limits. `incrementSubmissionCount(userId)` |
+| `docs/src/lib/stripe.ts`                                   | Singleton Stripe client (`new Stripe(process.env.STRIPE_SECRET_KEY)`), helper functions                                                           |
+| `docs/src/lib/analytics.ts`                                | Query helpers: `getSubmissionsOverTime(formId, range)`, `getOverviewAnalytics(userId)`                                                            |
+| `docs/src/lib/csv.ts`                                      | Converts submission array to CSV string                                                                                                           |
+| `docs/src/pages/api/embed/[formId]/submit.ts`              | Public submission endpoint                                                                                                                        |
+| `docs/src/pages/api/forms/[formId]/submissions/index.ts`   | List submissions (GET), bulk delete (DELETE)                                                                                                      |
+| `docs/src/pages/api/forms/[formId]/submissions/[subId].ts` | Get single (GET), delete single (DELETE)                                                                                                          |
+| `docs/src/pages/api/forms/[formId]/submissions.csv.ts`     | CSV export                                                                                                                                        |
+| `docs/src/pages/api/forms/[formId]/analytics.ts`           | Per-form analytics endpoint                                                                                                                       |
+| `docs/src/pages/api/analytics/overview.ts`                 | Dashboard overview analytics                                                                                                                      |
+| `docs/src/pages/api/stripe/create-checkout-session.ts`     | Checkout session creation                                                                                                                         |
+| `docs/src/pages/api/stripe/webhook.ts`                     | Stripe webhook receiver                                                                                                                           |
+| `docs/src/pages/api/stripe/create-portal.ts`               | Customer portal session                                                                                                                           |
+| `docs/src/pages/api/account/plan.ts`                       | Current plan info                                                                                                                                 |
+| `docs/src/pages/app/dashboard/index.astro`                 | Analytics dashboard page                                                                                                                          |
+| `docs/src/pages/app/dashboard/analytics.astro`             | Full analytics page with Chart.js                                                                                                                 |
+| `docs/src/pages/app/forms/[id]/submissions.astro`          | Submission list with table + search                                                                                                               |
+| `docs/src/pages/app/settings/billing.astro`                | Billing page — plan display, upgrade button, portal link, usage meters                                                                            |
+| `docs/src/components/analytics/SubmissionsChart.astro`     | Chart.js `<canvas>` + JS for submissions-over-time line chart                                                                                     |
+| `docs/src/components/analytics/FormBreakdown.astro`        | Horizontal bar chart of top forms                                                                                                                 |
+| `docs/src/components/analytics/ConversionCard.astro`       | Metric card showing conversion rate                                                                                                               |
+| `docs/src/components/submissions/SubmissionTable.astro`    | Paginated table component                                                                                                                         |
+| `docs/src/components/submissions/SubmissionDetail.astro`   | Expandable submission detail view                                                                                                                 |
+| `docs/src/components/billing/PlanCard.astro`               | Plan comparison card for billing page                                                                                                             |
+| `docs/src/components/billing/UpgradeButton.astro`          | Button that calls `/api/stripe/create-checkout-session` and redirects                                                                             |
+| `docs/src/components/billing/UsageMeter.astro`             | Progress bar showing forms used / limit, submissions used / limit                                                                                 |
 
 ### Modified files
 
-| File | Change |
-|---|---|
-| `docs/package.json` | Add `stripe`, `@stripe/stripe-js`, `chart.js` to dependencies |
-| `docs/astro.config.mjs` | Switch `output: 'static'` → `output: 'hybrid'` (done in Phase 1); ensure `adapter: node({ mode: 'standalone' })` for stripe SDK |
+| File                     | Change                                                                                                                                               |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `docs/package.json`      | Add `stripe`, `@stripe/stripe-js`, `chart.js` to dependencies                                                                                        |
+| `docs/astro.config.mjs`  | Switch `output: 'static'` → `output: 'hybrid'` (done in Phase 1); ensure `adapter: node({ mode: 'standalone' })` for stripe SDK                      |
 | `docs/src/middleware.ts` | Add plan-gating check: block form creation beyond limit, block submissions beyond quota. Attach `locals.plan` and `locals.limits` to request context |
-| `docs/.env.example` | Document `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID` |
-| `docs/src/db/index.ts` | Re-export new tables |
+| `docs/.env.example`      | Document `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRO_PRICE_ID`                                                                         |
+| `docs/src/db/index.ts`   | Re-export new tables                                                                                                                                 |
 
 ---
 
@@ -566,17 +600,17 @@ Includes all non-spam submissions. Headers derived from form fields.
 
 ### Plan Tiers
 
-| Feature | Free | Pro ($29/mo) | Enterprise (custom) |
-|---|---|---|---|
-| Forms | 3 | 50 | Unlimited |
-| Submissions/month | 100 | 10,000 | Unlimited |
-| Formbaker branding | Required on embed | Removable | Removable |
-| Custom domain | No | Yes | Yes |
-| Data export (CSV) | Last 30 days | All | All |
-| Analytics retention | 30 days | 1 year | Unlimited |
-| Email notifications | No | Yes | Yes |
-| Priority support | No | No | Yes |
-| On-premises | No | No | Yes |
+| Feature             | Free              | Pro ($29/mo) | Enterprise (custom) |
+| ------------------- | ----------------- | ------------ | ------------------- |
+| Forms               | 3                 | 50           | Unlimited           |
+| Submissions/month   | 100               | 10,000       | Unlimited           |
+| Formbaker branding  | Required on embed | Removable    | Removable           |
+| Custom domain       | No                | Yes          | Yes                 |
+| Data export (CSV)   | Last 30 days      | All          | All                 |
+| Analytics retention | 30 days           | 1 year       | Unlimited           |
+| Email notifications | No                | Yes          | Yes                 |
+| Priority support    | No                | No           | Yes                 |
+| On-premises         | No                | No           | Yes                 |
 
 ### Feature Gating Implementation
 
@@ -585,9 +619,27 @@ Includes all non-spam submissions. Headers derived from form fields.
 ```ts
 // Plan limits lookup
 const PLAN_LIMITS = {
-  free:   { forms: 3,   submissionsPerMonth: 100,   customDomain: false, removeBranding: false, csvHistory: 30 },
-  pro:    { forms: 50,  submissionsPerMonth: 10000,  customDomain: true,  removeBranding: true,  csvHistory: 365 },
-  enterprise: { forms: Infinity, submissionsPerMonth: Infinity, customDomain: true, removeBranding: true, csvHistory: Infinity },
+  free: {
+    forms: 3,
+    submissionsPerMonth: 100,
+    customDomain: false,
+    removeBranding: false,
+    csvHistory: 30,
+  },
+  pro: {
+    forms: 50,
+    submissionsPerMonth: 10000,
+    customDomain: true,
+    removeBranding: true,
+    csvHistory: 365,
+  },
+  enterprise: {
+    forms: Infinity,
+    submissionsPerMonth: Infinity,
+    customDomain: true,
+    removeBranding: true,
+    csvHistory: Infinity,
+  },
 } as const;
 
 // Attach to Astro.locals
@@ -619,7 +671,11 @@ export async function incrementSubmissionCount(db: DrizzleClient, userId: string
     });
 }
 
-export async function checkSubmissionQuota(db: DrizzleClient, userId: string, plan: string): Promise<boolean> {
+export async function checkSubmissionQuota(
+  db: DrizzleClient,
+  userId: string,
+  plan: string,
+): Promise<boolean> {
   const limit = PLAN_LIMITS[plan]?.submissionsPerMonth ?? 0;
   if (limit === Infinity) return true;
   const yearMonth = new Date().toISOString().slice(0, 7);
@@ -637,6 +693,7 @@ export async function checkSubmissionQuota(db: DrizzleClient, userId: string, pl
 ## Checklist
 
 ### Submissions
+
 - [ ] `formSubmissions` and `submissionCounts` tables + migration
 - [ ] `POST /api/embed/[formId]/submit` — CORS, rate limit, honeypot, quota check, store
 - [ ] `GET /api/forms/[formId]/submissions` — paginated, filterable
@@ -649,6 +706,7 @@ export async function checkSubmissionQuota(db: DrizzleClient, userId: string, pl
 - [ ] Search/filter on submissions page
 
 ### Analytics
+
 - [ ] `GET /api/forms/[formId]/analytics`
 - [ ] `GET /api/analytics/overview`
 - [ ] Chart.js integration — line chart for submissions over time
@@ -657,6 +715,7 @@ export async function checkSubmissionQuota(db: DrizzleClient, userId: string, pl
 - [ ] Analytics dashboard page (`/app/dashboard`)
 
 ### Stripe Billing
+
 - [ ] `subscriptions` table + migration
 - [ ] `users.stripeCustomerId` and `users.plan` columns
 - [ ] Stripe SDK installed and configured
@@ -668,6 +727,7 @@ export async function checkSubmissionQuota(db: DrizzleClient, userId: string, pl
 - [ ] `PlanCard`, `UpgradeButton`, `UsageMeter` components
 
 ### Plan Limits
+
 - [ ] `docs/src/lib/quota.ts` — check + increment functions
 - [ ] Middleware attaches `locals.plan` and `locals.limits`
 - [ ] Form creation gate (limit check on `POST /api/forms/create`)
@@ -675,6 +735,7 @@ export async function checkSubmissionQuota(db: DrizzleClient, userId: string, pl
 - [ ] Branding injection for free-tier embeds
 
 ### Dev & Testing
+
 - [ ] Stripe test mode webhook forwarding (Stripe CLI: `stripe listen --forward-to localhost:4321/api/stripe/webhook`)
 - [ ] `.env.example` updated with all Stripe vars
 - [ ] Rate limiter tested with load (e.g., `ab` or `oha`)

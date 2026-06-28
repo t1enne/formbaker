@@ -7,11 +7,11 @@ description: How to install Formbaker and its packages.
 
 Formbaker is split into three packages:
 
-| Package | npm | Purpose |
-|---------|-----|---------|
-| `formbaker` | `formbaker` | Core engine — form creation, dependency graph, schema derivation |
-| `formbaker-plugins` | `formbaker-plugins` | Validation backends (Zod, ArkType) |
-| `formbaker-integrations` | `formbaker-integrations` | Framework bridges (React Hook Form, Angular) |
+| Package                  | npm                      | Purpose                                                          |
+| ------------------------ | ------------------------ | ---------------------------------------------------------------- |
+| `formbaker`              | `formbaker`              | Core engine — form creation, dependency graph, schema derivation |
+| `formbaker-plugins`      | `formbaker-plugins`      | Validation backends (Zod, ArkType)                               |
+| `formbaker-integrations` | `formbaker-integrations` | Framework bridges (React Hook Form, Angular)                     |
 
 ```bash
 # Everything

@@ -1,6 +1,7 @@
 # PHASE 3: Interactive Form Builder + Live Preview
 
 ## Summary
+
 Build the visual form editor (`/app/forms/[id]/edit`) that replaces raw JSON editing
 with a three-panel builder: structure tree (left), live preview (center), property
 editor (right). Powered by Preact + signals on the client, consuming the `formbaker`
@@ -13,16 +14,17 @@ library bundled through Vite/Astro. The builder produces and consumes the same
 
 ### Client vs Server Responsibilities
 
-| Layer | Responsibility |
-|---|---|
-| **Server (Astro SSR)** | Auth check via middleware, load form JSON from DB, serve the edit page shell, handle PUT /api/forms/[id] |
-| **Client (Preact island)** | All builder UX: tree rendering, property editing, undo/redo, live preview, auto-save to localStorage |
-| **Formbaker engine** | Runs on both sides: server for validation/API, browser for live preview. Same `formbaker` package via file: dependency |
+| Layer                      | Responsibility                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| **Server (Astro SSR)**     | Auth check via middleware, load form JSON from DB, serve the edit page shell, handle PUT /api/forms/[id]               |
+| **Client (Preact island)** | All builder UX: tree rendering, property editing, undo/redo, live preview, auto-save to localStorage                   |
+| **Formbaker engine**       | Runs on both sides: server for validation/API, browser for live preview. Same `formbaker` package via file: dependency |
 
 The split is clean: the server is a thin data pipe (load/save JSON). The client owns
 the entire editing experience. There is no server-side rendering for the builder UI.
 
 ### Data Flow
+
 ```
 Server (SSR)
   │ GET /api/forms/[id] → JSON
@@ -294,7 +296,7 @@ export const viewModeSignal = signal<"builder" | "embed">("builder");
 // ── Undo/redo ──────────────────────────────────────────────
 
 const MAX_HISTORY = 50;
-const undoStack = signal<string[]>([]);  // JSON snapshots
+const undoStack = signal<string[]>([]); // JSON snapshots
 const redoStack = signal<string[]>([]);
 
 export function pushUndo() {
@@ -382,7 +384,9 @@ export function updateNode(nodeId: string, patch: Partial<FormbakerNode>) {
   saveStatusSignal.value = "dirty";
 }
 
-export function addNodeAction(node: Partial<FormbakerNode> & { id: string; type: "field" | "section" }) {
+export function addNodeAction(
+  node: Partial<FormbakerNode> & { id: string; type: "field" | "section" },
+) {
   const form = formSignal.value;
   if (!form) return;
   pushUndo();
@@ -475,7 +479,7 @@ export async function saveToServer(formId: string) {
 1. **Mutations are in-place on the signal, not immutable.** The formbaker engine
    functions (`addNode`, `removeNode`, etc.) return new objects. We assign the
    result back to the signal. The `pushUndo()` helper captures a JSON snapshot
-   *before* the mutation.
+   _before_ the mutation.
 
 2. **Undo/redo uses JSON snapshots**, not command objects. This is simpler for a
    Phase 3 release and works well because `Formbaker` objects are small (typically
@@ -504,13 +508,14 @@ The `docs/` project is NOT a workspace member of the root monorepo. To use
 // docs/package.json (addition)
 {
   "dependencies": {
-    "formbaker": "file:../packages/formbaker",
+    "formbaker": "file:../packages/formbaker"
     // ...existing deps
   }
 }
 ```
 
 **Why this works:**
+
 - `formbaker` builds to `dist/` with ESM (`"type": "module"`)
 - Astro uses Vite, which resolves `file:` dependencies and bundles them for the
   browser automatically during `astro dev` and `astro build`
@@ -519,6 +524,7 @@ The `docs/` project is NOT a workspace member of the root monorepo. To use
 - No separate bundling step, no workspace config changes
 
 **What Vite does:**
+
 - During dev: resolves `formbaker` → `../packages/formbaker/dist/index.js`,
   transforms ESM, serves via dev server
 - During build: tree-shakes and bundles into the client JS chunk
@@ -532,6 +538,7 @@ The `docs/` project is NOT a workspace member of the root monorepo. To use
 | File watching for dev | Vite watches `node_modules/formbaker/dist/`; after library changes, run `npm run build -w packages/formbaker` before dev |
 
 ### What the user must do before running the builder:
+
 ```bash
 cd packages/formbaker && npm run build   # ensures dist/ is fresh
 cd docs && npm install                    # resolves file: dependency
@@ -539,6 +546,7 @@ npm run dev                               # starts Astro dev server
 ```
 
 ### Upgrade path (if file: dependency causes issues):
+
 - Create a `@formbaker/browser` workspace package that wraps formbaker with a
   Vite/Rollup build producing a pre-bundled ESM file
 - Publish formbaker to npm and use as a regular dependency
@@ -550,6 +558,7 @@ npm run dev                               # starts Astro dev server
 ### 1. Configuration changes
 
 **`docs/package.json`** — Add dependencies:
+
 ```json
 {
   "dependencies": {
@@ -566,6 +575,7 @@ npm run dev                               # starts Astro dev server
 ```
 
 **`docs/astro.config.mjs`** — Add Preact integration:
+
 ```js
 import preact from '@astrojs/preact';
 // ... in defineConfig:
@@ -578,6 +588,7 @@ integrations: [
 ### 2. Astro page
 
 **`docs/src/pages/app/forms/[id]/edit.astro`**
+
 - SSR page, checks auth via `Astro.locals.user`
 - Loads form from API/DB on server side
 - Renders the FormBuilder island with form data
@@ -616,27 +627,28 @@ listing in the State Management section above).
 
 All components go in `docs/src/components/form-builder/`:
 
-| File | Description | Key points |
-|---|---|---|
-| `FormBuilder.tsx` | Island root | Initializes signals from props, sets up undo/redo keyboard shortcuts (Ctrl+Z/Y), auto-save interval (every 30s), view mode switch |
-| `BuilderToolbar.tsx` | Top toolbar | Reads `saveStatusSignal`, `canUndoSignal`, `canRedoSignal`. Renders `<button>` elements. Undo/redo disabled states. Save button with status indicator dot (green=saved, yellow=dirty, red=error) |
-| `BuilderLayout.tsx` | Three-panel shell | CSS grid: `grid-template-columns: 280px 1fr 320px`. Handles panel collapse on small screens (single-column stack) |
-| `NodeTreePanel.tsx` | Left tree panel | Maps `sortedNodesSignal` to `NodeTreeItem` components. Auto-scrolls to selected node. Shows empty state when no nodes exist |
-| `NodeTreeItem.tsx` | Single tree row | Recursively indents based on parentId depth. Shows field type icon (T for text, ☑ for checkbox, etc.) and label. Click handler calls `selectNode`. Delete button (×) on hover |
-| `PropertyEditor.tsx` | Right panel router | Reads `selectedNodeSignal`. Switches between `SectionPropertyEditor`, `FieldPropertyEditor`, and empty state. Delete button with confirmation dialog |
-| `SectionPropertyEditor.tsx` | Section props | Editable: label, description. Section ID shown read-only. |
-| `FieldPropertyEditor.tsx` | Field props | Editable: label, description, fieldType (select), placeholder, required, min, max, defaultValue, options (for select). Validation section with required/min/max + custom messages |
-| `DependencyEditor.tsx` | Dependency list | Shows backward deps for selected field. Add button opens inline form: source select, condition builder, combinator (if >1 dep). Each dep row: "When [source] [condition] → show this" with delete × |
-| `ConditionBuilder.tsx` | Condition UI | Dispatches to type-specific sub-components based on source field's fieldType. CheckboxCondition, SelectCondition, TextCondition, NumberCondition |
-| `LivePreview.tsx` | Center preview | Renders `PreviewSection` and `PreviewField` components. Calls `isVisible` from formbaker before rendering each node. Passes `previewValuesSignal` and `updatePreviewValue` down |
-| `PreviewSection.tsx` | Section in preview | `<fieldset>` with `<legend>`. Only renders if `isVisible` returns true. Renders visible child fields |
-| `PreviewField.tsx` | Field in preview | Renders the correct `<input>` based on fieldType. Controlled component: value from `previewValuesSignal`, onChange calls `updatePreviewValue`. Shows validation error if field is required and empty |
-| `EmbedTab.tsx` | Embed view | Replaces the three-panel layout when active. Shows `<pre><code>` with iframe snippet. Copy-to-clipboard button. Actual `<iframe>` preview |
-| `AddNodeModal.tsx` | Add node dialog | Modal overlay. Two modes (field/section). Auto-generates UUID for ID. Validates section ID starts with `#`. Calls `addNodeAction` on submit |
+| File                        | Description        | Key points                                                                                                                                                                                           |
+| --------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `FormBuilder.tsx`           | Island root        | Initializes signals from props, sets up undo/redo keyboard shortcuts (Ctrl+Z/Y), auto-save interval (every 30s), view mode switch                                                                    |
+| `BuilderToolbar.tsx`        | Top toolbar        | Reads `saveStatusSignal`, `canUndoSignal`, `canRedoSignal`. Renders `<button>` elements. Undo/redo disabled states. Save button with status indicator dot (green=saved, yellow=dirty, red=error)     |
+| `BuilderLayout.tsx`         | Three-panel shell  | CSS grid: `grid-template-columns: 280px 1fr 320px`. Handles panel collapse on small screens (single-column stack)                                                                                    |
+| `NodeTreePanel.tsx`         | Left tree panel    | Maps `sortedNodesSignal` to `NodeTreeItem` components. Auto-scrolls to selected node. Shows empty state when no nodes exist                                                                          |
+| `NodeTreeItem.tsx`          | Single tree row    | Recursively indents based on parentId depth. Shows field type icon (T for text, ☑ for checkbox, etc.) and label. Click handler calls `selectNode`. Delete button (×) on hover                        |
+| `PropertyEditor.tsx`        | Right panel router | Reads `selectedNodeSignal`. Switches between `SectionPropertyEditor`, `FieldPropertyEditor`, and empty state. Delete button with confirmation dialog                                                 |
+| `SectionPropertyEditor.tsx` | Section props      | Editable: label, description. Section ID shown read-only.                                                                                                                                            |
+| `FieldPropertyEditor.tsx`   | Field props        | Editable: label, description, fieldType (select), placeholder, required, min, max, defaultValue, options (for select). Validation section with required/min/max + custom messages                    |
+| `DependencyEditor.tsx`      | Dependency list    | Shows backward deps for selected field. Add button opens inline form: source select, condition builder, combinator (if >1 dep). Each dep row: "When [source] [condition] → show this" with delete ×  |
+| `ConditionBuilder.tsx`      | Condition UI       | Dispatches to type-specific sub-components based on source field's fieldType. CheckboxCondition, SelectCondition, TextCondition, NumberCondition                                                     |
+| `LivePreview.tsx`           | Center preview     | Renders `PreviewSection` and `PreviewField` components. Calls `isVisible` from formbaker before rendering each node. Passes `previewValuesSignal` and `updatePreviewValue` down                      |
+| `PreviewSection.tsx`        | Section in preview | `<fieldset>` with `<legend>`. Only renders if `isVisible` returns true. Renders visible child fields                                                                                                 |
+| `PreviewField.tsx`          | Field in preview   | Renders the correct `<input>` based on fieldType. Controlled component: value from `previewValuesSignal`, onChange calls `updatePreviewValue`. Shows validation error if field is required and empty |
+| `EmbedTab.tsx`              | Embed view         | Replaces the three-panel layout when active. Shows `<pre><code>` with iframe snippet. Copy-to-clipboard button. Actual `<iframe>` preview                                                            |
+| `AddNodeModal.tsx`          | Add node dialog    | Modal overlay. Two modes (field/section). Auto-generates UUID for ID. Validates section ID starts with `#`. Calls `addNodeAction` on submit                                                          |
 
 ### 5. CSS
 
 **`docs/src/components/form-builder/builder.css`** — Scoped styles for the builder:
+
 - Three-panel layout grid
 - Tree panel: indentation, connector lines (CSS borders/pseudo-elements), selection highlight
 - Property panel: form layout, input styling
@@ -646,25 +658,27 @@ All components go in `docs/src/components/form-builder/`:
 - Responsive: single-column stack below 900px
 
 Import this CSS in `FormBuilder.tsx`:
+
 ```tsx
-import './builder.css';
+import "./builder.css";
 ```
 
 ### 6. Server-side API additions
 
 **`docs/src/pages/api/forms/[id].ts`** — PUT handler:
+
 ```ts
 export const prerender = false;
 export const PUT: APIRoute = async ({ params, request, locals }) => {
-  if (!locals.user) return new Response('Unauthorized', { status: 401 });
+  if (!locals.user) return new Response("Unauthorized", { status: 401 });
   const { id } = params;
   const form = await getFormById(id);
-  if (!form || form.userId !== locals.user.id) return new Response('Not found', { status: 404 });
+  if (!form || form.userId !== locals.user.id) return new Response("Not found", { status: 404 });
   const body = await request.json();
   // Validate structure (has pluginName, nodes is object, dependencies shape)
   await updateFormDefinition(id, body);
   return new Response(JSON.stringify({ ok: true }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { "Content-Type": "application/json" },
   });
 };
 export const GET: APIRoute = async ({ params, locals }) => {
@@ -675,18 +689,27 @@ export const GET: APIRoute = async ({ params, locals }) => {
 ### 7. Utility
 
 **`docs/src/lib/builder-utils.ts`** — Small helpers:
+
 ```ts
 // Generate a random ID for new nodes
-export function generateId(): string { /* crypto.randomUUID() polyfill or Math.random fallback */ }
+export function generateId(): string {
+  /* crypto.randomUUID() polyfill or Math.random fallback */
+}
 
 // Extract a flat DFS-ordered node list from formbaker's getSortedNodes
-export function getFlatNodeList(form: Formbaker): Array<{ node: FormbakerNode; depth: number }> { /* ... */ }
+export function getFlatNodeList(form: Formbaker): Array<{ node: FormbakerNode; depth: number }> {
+  /* ... */
+}
 
 // Serialize condition based on source field type + UI values
-export function serializeCondition(sourceField: FormbakerField, uiValue: unknown): unknown { /* ... */ }
+export function serializeCondition(sourceField: FormbakerField, uiValue: unknown): unknown {
+  /* ... */
+}
 
 // Deserialize condition to UI representation
-export function deserializeCondition(sourceField: FormbakerField, condition: unknown): unknown { /* ... */ }
+export function deserializeCondition(sourceField: FormbakerField, condition: unknown): unknown {
+  /* ... */
+}
 ```
 
 ---
@@ -850,6 +873,7 @@ User makes changes → saveStatus: "dirty"
 ## Checklist
 
 ### Dependencies & Config
+
 - [ ] Add `preact`, `@preact/signals`, `@astrojs/preact` to docs/package.json
 - [ ] Add `"formbaker": "file:../packages/formbaker"` to docs/package.json dependencies
 - [ ] Add `preact()` integration to astro.config.mjs
@@ -858,6 +882,7 @@ User makes changes → saveStatus: "dirty"
 - [ ] Verify `import { create } from "formbaker"` works in a test component
 
 ### State Layer
+
 - [ ] Create `src/lib/builder-state.ts` with all signals and mutation helpers
 - [ ] Create `src/lib/builder-utils.ts` with `generateId`, `getFlatNodeList`, condition serialization
 - [ ] Write unit tests (vitest) for `pushUndo`, `undo`, `redo` cycle
@@ -865,24 +890,28 @@ User makes changes → saveStatus: "dirty"
 - [ ] Write unit tests for condition serialize/deserialize round-trip
 
 ### Page
+
 - [ ] Create `src/pages/app/forms/[id]/edit.astro` with auth check and form loading
 - [ ] Create or update `src/pages/api/forms/[id].ts` with GET and PUT handlers
 - [ ] Verify SSR renders page shell with correct form data passed as prop
 - [ ] Verify API rejects unauthorized requests
 
 ### Core Components
+
 - [ ] Create `FormBuilder.tsx` — island root with signal init, keyboard shortcuts, auto-save
 - [ ] Create `BuilderToolbar.tsx` — toolbar with all buttons and status indicator
 - [ ] Create `BuilderLayout.tsx` — three-panel CSS grid
 - [ ] Create `builder.css` — all builder styles
 
 ### Tree Panel
+
 - [ ] Create `NodeTreePanel.tsx` — renders flat node list
 - [ ] Create `NodeTreeItem.tsx` — indentation, icons, selection, hover delete
 - [ ] Verify tree updates when nodes are added/removed/reordered
 - [ ] Verify tree scrolls to newly added node
 
 ### Property Editor
+
 - [ ] Create `PropertyEditor.tsx` — node type dispatch
 - [ ] Create `SectionPropertyEditor.tsx` — label, description
 - [ ] Create `FieldPropertyEditor.tsx` — all field properties + validation
@@ -892,6 +921,7 @@ User makes changes → saveStatus: "dirty"
 - [ ] Verify delete node with forward dependencies is blocked (engine returns false)
 
 ### Dependency Editor
+
 - [ ] Create `DependencyEditor.tsx` — list + add/remove
 - [ ] Create `ConditionBuilder.tsx` — type-dispatch for conditions
 - [ ] Verify adding dependency hides/shows target in preview
@@ -900,6 +930,7 @@ User makes changes → saveStatus: "dirty"
 - [ ] Verify cyclical dependency prevention (engine throws → caught in UI)
 
 ### Live Preview
+
 - [ ] Create `LivePreview.tsx` — form renderer using formbaker engine
 - [ ] Create `PreviewSection.tsx` — fieldset with legend
 - [ ] Create `PreviewField.tsx` — type-appropriate input rendering
@@ -909,17 +940,20 @@ User makes changes → saveStatus: "dirty"
 - [ ] Verify select fields render options correctly
 
 ### Embed Tab
+
 - [ ] Create `EmbedTab.tsx` — snippet + copy button + iframe preview
 - [ ] Verify iframe snippet is correct
 - [ ] Verify copy-to-clipboard works
 
 ### Add Node Modal
+
 - [ ] Create `AddNodeModal.tsx` — field and section modes
 - [ ] Verify field addition with parentId (contextual to selected section)
 - [ ] Verify section ID validation (must start with #)
 - [ ] Verify duplicate ID rejection (handled by engine)
 
 ### Save & Persistence
+
 - [ ] Verify manual save works (PUT request, success feedback)
 - [ ] Verify auto-save to localStorage on 30s interval
 - [ ] Verify localStorage restore on page reload (offer to restore)
@@ -927,6 +961,7 @@ User makes changes → saveStatus: "dirty"
 - [ ] Verify undo/redo buttons disabled state
 
 ### Polish
+
 - [ ] Keyboard shortcuts: Ctrl+S triggers save
 - [ ] Unsaved changes warning on tab close (beforeunload)
 - [ ] Responsive layout (single-column below 900px)

@@ -70,6 +70,7 @@ registerPlugin("yup", yupPlugin);
 ```
 
 Your plugin only needs to:
+
 1. Accept `PluginState`
 2. Return a `StandardSchemaV1` object
 

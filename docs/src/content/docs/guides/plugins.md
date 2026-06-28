@@ -60,12 +60,12 @@ const myPlugin: Plugin = (state) => {
 
 Why use one over the other?
 
-| | Zod | ArkType |
-|---|-----|---------|
-| Bundle size | ~12 KB gzipped | < 2 KB gzipped |
-| Type inference | Yes | Yes (1:1 TS mapping) |
-| Syntax | Method chains | String-based expressions |
-| Ecosystem | Mature, many integrations | Newer, very fast |
+|                | Zod                       | ArkType                  |
+| -------------- | ------------------------- | ------------------------ |
+| Bundle size    | ~12 KB gzipped            | < 2 KB gzipped           |
+| Type inference | Yes                       | Yes (1:1 TS mapping)     |
+| Syntax         | Method chains             | String-based expressions |
+| Ecosystem      | Mature, many integrations | Newer, very fast         |
 
 For most projects, either works. If bundle size matters (e.g., an embed
 widget), ArkType's <2 KB is compelling. If you already use Zod in your

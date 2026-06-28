@@ -7,8 +7,8 @@ description: The dependency graph — conditions, combinators, and cycle detecti
 
 ```ts
 interface Dependency {
-  target: string;     // node ID to show/hide
-  source: string;     // node ID to watch
+  target: string; // node ID to show/hide
+  source: string; // node ID to watch
   condition: Condition;
 }
 
@@ -39,11 +39,11 @@ form.addDependency({ target: "a", source: "b", condition: { equals: true } }, "O
 
 Supported combinators:
 
-| Combinator | Behavior |
-|-----------|----------|
-| `"OR"` | Target visible if ANY source condition is satisfied (default) |
-| `"AND"` | Target visible only if ALL source conditions are satisfied |
-| `"XOR"` | Target visible if EXACTLY ONE source condition is satisfied |
+| Combinator | Behavior                                                      |
+| ---------- | ------------------------------------------------------------- |
+| `"OR"`     | Target visible if ANY source condition is satisfied (default) |
+| `"AND"`    | Target visible only if ALL source conditions are satisfied    |
+| `"XOR"`    | Target visible if EXACTLY ONE source condition is satisfied   |
 
 ## Condition evaluation
 

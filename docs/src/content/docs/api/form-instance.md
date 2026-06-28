@@ -112,7 +112,7 @@ const visible = form.evaluate({ has_pet: true });
 
 ```ts
 form.isVisible("pet_name", { has_pet: false }); // false
-form.isVisible("pet_name", { has_pet: true });  // true
+form.isVisible("pet_name", { has_pet: true }); // true
 ```
 
 ## Utility

@@ -110,62 +110,69 @@ const wizard = create(
 <Tabs>
   <TabItem label="React">
 
-  ```tsx
-  function Wizard() {
-    const { register, isInSchema, watch } = useFormbakerForm(wizard);
-    const type = watch("type");
+```tsx
+function Wizard() {
+  const { register, isInSchema, watch } = useFormbakerForm(wizard);
+  const type = watch("type");
 
-    return (
-      <form>
-        <fieldset>
-          <legend>What do you need to insure?</legend>
-          <label><input type="radio" value="car" {...register("type")} /> Car</label>
-          <label><input type="radio" value="home" {...register("type")} /> Home</label>
-          <label><input type="radio" value="life" {...register("type")} /> Life</label>
-        </fieldset>
+  return (
+    <form>
+      <fieldset>
+        <legend>What do you need to insure?</legend>
+        <label>
+          <input type="radio" value="car" {...register("type")} /> Car
+        </label>
+        <label>
+          <input type="radio" value="home" {...register("type")} /> Home
+        </label>
+        <label>
+          <input type="radio" value="life" {...register("type")} /> Life
+        </label>
+      </fieldset>
 
-        {type === "car" && (
-          <div className="step">
-            <h2>Car Details</h2>
-            <input placeholder="Make" {...register("make")} />
-            <input placeholder="Model" {...register("model")} />
-            <input type="number" placeholder="Year" {...register("year")} />
-          </div>
-        )}
+      {type === "car" && (
+        <div className="step">
+          <h2>Car Details</h2>
+          <input placeholder="Make" {...register("make")} />
+          <input placeholder="Model" {...register("model")} />
+          <input type="number" placeholder="Year" {...register("year")} />
+        </div>
+      )}
 
-        {type === "home" && (
-          <div className="step">
-            <h2>Home Details</h2>
-            <select {...register("home_type")}>
-              <option value="house">House</option>
-              <option value="apartment">Apartment</option>
-              <option value="condo">Condo</option>
-            </select>
-            <input type="number" placeholder="Square footage" {...register("sqft")} />
-          </div>
-        )}
+      {type === "home" && (
+        <div className="step">
+          <h2>Home Details</h2>
+          <select {...register("home_type")}>
+            <option value="house">House</option>
+            <option value="apartment">Apartment</option>
+            <option value="condo">Condo</option>
+          </select>
+          <input type="number" placeholder="Square footage" {...register("sqft")} />
+        </div>
+      )}
 
-        {type === "life" && (
-          <div className="step">
-            <h2>Life Insurance</h2>
-            <input type="number" placeholder="Your age" {...register("age")} />
-          </div>
-        )}
+      {type === "life" && (
+        <div className="step">
+          <h2>Life Insurance</h2>
+          <input type="number" placeholder="Your age" {...register("age")} />
+        </div>
+      )}
 
-        {isInSchema("coverage") && (
-          <div>
-            <label>Coverage level</label>
-            <select {...register("coverage")}>
-              <option value="basic">Basic</option>
-              <option value="standard">Standard</option>
-              <option value="premium">Premium</option>
-            </select>
-          </div>
-        )}
-      </form>
-    );
-  }
-  ```
+      {isInSchema("coverage") && (
+        <div>
+          <label>Coverage level</label>
+          <select {...register("coverage")}>
+            <option value="basic">Basic</option>
+            <option value="standard">Standard</option>
+            <option value="premium">Premium</option>
+          </select>
+        </div>
+      )}
+    </form>
+  );
+}
+```
+
   </TabItem>
 </Tabs>
 

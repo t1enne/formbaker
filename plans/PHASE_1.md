@@ -138,11 +138,7 @@ export async function createSession(userId: string): Promise<string> {
 }
 
 export async function validateSession(token: string) {
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.id, token))
-    .limit(1);
+  const [session] = await db.select().from(sessions).where(eq(sessions.id, token)).limit(1);
 
   if (!session || session.expiresAt < Date.now()) {
     // Clean up expired session
@@ -203,11 +199,7 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { db } from "../../../db";
 import { users } from "../../../db/schema";
-import {
-  hashPassword,
-  createSession,
-  sessionCookie,
-} from "../../../lib/auth";
+import { hashPassword, createSession, sessionCookie } from "../../../lib/auth";
 import { eq } from "drizzle-orm";
 import crypto from "node:crypto";
 
@@ -271,11 +263,7 @@ export const prerender = false;
 import type { APIRoute } from "astro";
 import { db } from "../../../db";
 import { users } from "../../../db/schema";
-import {
-  verifyPassword,
-  createSession,
-  sessionCookie,
-} from "../../../lib/auth";
+import { verifyPassword, createSession, sessionCookie } from "../../../lib/auth";
 import { eq } from "drizzle-orm";
 
 export const POST: APIRoute = async ({ request, cookies, redirect }) => {
@@ -287,11 +275,7 @@ export const POST: APIRoute = async ({ request, cookies, redirect }) => {
     return new Response("Email and password are required.", { status: 400 });
   }
 
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email))
-    .limit(1);
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1);
 
   if (!user) {
     // Don't reveal whether the email exists
@@ -363,10 +347,10 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  return new Response(
-    JSON.stringify({ authenticated: true, user }),
-    { status: 200, headers: { "Content-Type": "application/json" } },
-  );
+  return new Response(JSON.stringify({ authenticated: true, user }), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
 };
 ```
 
@@ -653,6 +637,7 @@ The rest of the config (starlight integration, node adapter, site) stays identic
 ### 2. `docs/package.json` — Add scripts and dependencies
 
 **Add to `dependencies`:**
+
 ```json
 {
   "better-sqlite3": "^12.11.1",
@@ -662,6 +647,7 @@ The rest of the config (starlight integration, node adapter, site) stays identic
 ```
 
 **Add to `devDependencies` or a new `devDependencies` block:**
+
 ```json
 {
   "@types/better-sqlite3": "^7.6.13",
@@ -671,6 +657,7 @@ The rest of the config (starlight integration, node adapter, site) stays identic
 ```
 
 **Add to `scripts`:**
+
 ```json
 {
   "db:generate": "drizzle-kit generate",
@@ -681,6 +668,7 @@ The rest of the config (starlight integration, node adapter, site) stays identic
 ### 3. `docs/.gitignore` — Add data and migration artifacts
 
 Append:
+
 ```
 # SQLite database
 .data/
@@ -837,7 +825,8 @@ ME (read current user)
 - [ ] 25. Run `npm run build` in docs/ — confirm no build errors
 - [ ] 26. Run `npm run dev` in docs/ — test full flow: visit /signup, create account, verify redirect to /app/dashboard, visit /api/auth/me, logout, verify redirect to /login
 - [ ] 27. Verify /docs pages still load correctly (static pre-rendering)
-```
+
+````
 
 ```acceptance-report
 {
@@ -878,4 +867,4 @@ ME (read current user)
   ],
   "manualNotes": "The plan is executable by another agent without ambiguity. The cookie secure flag mentioned in residual risks should be addressed in implementation — I recommend wrapping it: `secure: import.meta.env.PROD` which Astro provides out of the box."
 }
-```
+````

@@ -10,8 +10,8 @@ when field Y has value Z."
 
 ```ts
 const dep = {
-  target: "pet_name",    // field to show/hide
-  source: "has_pet",     // field to watch
+  target: "pet_name", // field to show/hide
+  source: "has_pet", // field to watch
   condition: { equals: true }, // when source value matches
 };
 ```
@@ -22,19 +22,19 @@ schema.
 
 ## Condition types
 
-| Condition | Example | Description |
-|-----------|---------|-------------|
-| `equals` | `{ equals: true }` | Source value must match exactly |
-| `notEquals` | `{ notEquals: "" }` | Source value must differ |
-| `in` | `{ in: ["cat", "dog"] }` | Source value must be one of |
-| `notIn` | `{ notIn: [""] }` | Source value must not be one of |
-| `gt` | `{ gt: 18 }` | Source value greater than (numbers) |
-| `gte` | `{ gte: 0 }` | Greater than or equal |
-| `lt` | `{ lt: 100 }` | Less than |
-| `lte` | `{ lte: 99 }` | Less than or equal |
-| `regex` | `{ regex: "^\\d{5}$" }` | Source value matches pattern |
-| `empty` | `{ empty: true }` | Value is empty (null, undefined, "") |
-| `notEmpty` | `{ notEmpty: true }` | Value is non-empty |
+| Condition   | Example                  | Description                          |
+| ----------- | ------------------------ | ------------------------------------ |
+| `equals`    | `{ equals: true }`       | Source value must match exactly      |
+| `notEquals` | `{ notEquals: "" }`      | Source value must differ             |
+| `in`        | `{ in: ["cat", "dog"] }` | Source value must be one of          |
+| `notIn`     | `{ notIn: [""] }`        | Source value must not be one of      |
+| `gt`        | `{ gt: 18 }`             | Source value greater than (numbers)  |
+| `gte`       | `{ gte: 0 }`             | Greater than or equal                |
+| `lt`        | `{ lt: 100 }`            | Less than                            |
+| `lte`       | `{ lte: 99 }`            | Less than or equal                   |
+| `regex`     | `{ regex: "^\\d{5}$" }`  | Source value matches pattern         |
+| `empty`     | `{ empty: true }`        | Value is empty (null, undefined, "") |
+| `notEmpty`  | `{ notEmpty: true }`     | Value is non-empty                   |
 
 ## Combinators: AND, OR, XOR
 
@@ -55,7 +55,7 @@ dependencies: [
 dependencies: [
   { target: "contact", source: "pref_email", condition: { equals: true } },
   { target: "contact", source: "pref_phone", condition: { equals: true } },
-]
+];
 ```
 
 ```ts
@@ -91,7 +91,7 @@ parent hides, all children are hidden transitively:
 dependencies: [
   { target: "business_section", source: "type", condition: { equals: "business" } },
   { target: "employees", source: "has_employees", condition: { equals: true } },
-]
+];
 ```
 
 ## Cyclic detection
@@ -103,7 +103,7 @@ Formbaker prevents infinite loops:
 dependencies: [
   { target: "a", source: "b", condition: { equals: true } },
   { target: "b", source: "a", condition: { equals: true } },
-]
+];
 ```
 
 A `CycleError` is thrown at `addDependency` time so you catch the bug

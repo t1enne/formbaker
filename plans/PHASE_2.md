@@ -73,13 +73,9 @@ export async function listForms(userId: string): Promise<FormListItem[]> {
     try {
       const def = JSON.parse(r.definition) as Formbaker;
       nodeCount = Object.keys(def.nodes ?? {}).length;
-      dependencyCount =
-        (def.dependencies?.forward
-          ? Object.values(def.dependencies.forward).reduce(
-              (sum, deps) => sum + deps.length,
-              0,
-            )
-          : 0);
+      dependencyCount = def.dependencies?.forward
+        ? Object.values(def.dependencies.forward).reduce((sum, deps) => sum + deps.length, 0)
+        : 0;
     } catch {
       // corrupted definition — show zeros
     }
@@ -87,10 +83,7 @@ export async function listForms(userId: string): Promise<FormListItem[]> {
   });
 }
 
-export async function getForm(
-  id: string,
-  userId: string,
-): Promise<FormRow | undefined> {
+export async function getForm(id: string, userId: string): Promise<FormRow | undefined> {
   const rows = await db
     .select()
     .from(forms)
@@ -133,9 +126,7 @@ export async function updateForm(
 }
 
 export async function deleteForm(id: string, userId: string): Promise<boolean> {
-  const result = await db
-    .delete(forms)
-    .where(and(eq(forms.id, id), eq(forms.userId, userId)));
+  const result = await db.delete(forms).where(and(eq(forms.id, id), eq(forms.userId, userId)));
   // Drizzle delete result: rowsAffected is available on some drivers
   // For better-sqlite3 via drizzle, we check by re-querying
   const remaining = await getForm(id, userId);
@@ -208,10 +199,10 @@ export const POST: APIRoute = async ({ request }) => {
       throw new Error("Missing pluginName");
     }
   } catch {
-    return new Response(
-      JSON.stringify({ error: "definition is not a valid Formbaker schema" }),
-      { status: 400, headers: { "Content-Type": "application/json" } },
-    );
+    return new Response(JSON.stringify({ error: "definition is not a valid Formbaker schema" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   const form = await createForm(user.id, body.name.trim(), body.definition);
@@ -296,10 +287,10 @@ export const PUT: APIRoute = async ({ params, request }) => {
         throw new Error("Missing pluginName");
       }
     } catch {
-      return new Response(
-        JSON.stringify({ error: "definition is not a valid Formbaker schema" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "definition is not a valid Formbaker schema" }), {
+        status: 400,
+        headers: { "Content-Type": "application/json" },
+      });
     }
   }
 
@@ -307,8 +298,8 @@ export const PUT: APIRoute = async ({ params, request }) => {
   if (!form) {
     return new Response(JSON.stringify({ error: "Form not found" }), {
       status: 404,
-      headers: { "Content-Type": "application/json" } },
-    );
+      headers: { "Content-Type": "application/json" },
+    });
   }
 
   return new Response(JSON.stringify(form), {
@@ -911,12 +902,14 @@ But this is optional — the `definition` field is stored and served as a string
 ## Landing Page Content Outline
 
 ### Hero Section
+
 - **Headline:** "Dynamic Forms, No Effort"
 - **Subheadline:** "Define forms as data. Let fields appear, disappear, and revalidate based on user input — across React, Angular, and plain HTML5."
 - **CTA buttons:** "Start Building" (→ /signup, filled purple), "See the Docs" (→ /docs/, outlined)
 - **Visual:** Code snippet showing a Formbaker JSON definition with syntax highlighting (purple accented). The snippet shows a form with 3 fields: `name` (text, required), `has_extra` (checkbox), `extra_detail` (text, visible only when `has_extra` is true).
 
 ### Features Grid (6 cards, 3×2 on desktop)
+
 1. **Define as Data** — "Forms are plain JSON. Version them in git. Generate them programmatically. No drag-and-drop lock-in."
 2. **Conditional Logic** — "Fields appear, disappear, and revalidate based on previous answers. Dependencies are declarative — no imperative spaghetti."
 3. **Multi-Framework** — "One form definition. Render with React Hook Form, Angular Reactive Forms, or vanilla HTML5 `<form>`. Pick the integration that fits your stack."
@@ -925,16 +918,19 @@ But this is optional — the `definition` field is stored and served as a string
 6. **Open Source Core** — "MIT licensed. The engine is free forever — inspect it, fork it, contribute. Pay for hosting, collaboration, and enterprise features."
 
 ### Code Demo Section
+
 - Show a validated JSON definition inline (10–15 nodes, 3–4 dependencies)
 - Side-by-side: JSON on the left, rendered form preview on the right (static screenshot or ASCII-style mockup)
 - **ponytail:** Phase 2 uses a static mockup. Phase 3 adds a live iframe preview.
 
 ### CTA Section
+
 - "Start building dynamic forms today"
 - "Get Started Free" button (→ /signup)
 - "No credit card required. Free tier includes up to 3 forms."
 
 ### Footer
+
 - Left: Formbaker logo + tagline
 - Links: Docs, Pricing, GitHub, Contact
 - Bottom: © 2026 Formbaker. MIT License.
@@ -944,6 +940,7 @@ But this is optional — the `definition` field is stored and served as a string
 ## Pricing Tiers Specification
 
 ### Free Tier
+
 - **Price:** $0/month, forever
 - **Includes:**
   - Up to 3 forms
@@ -955,6 +952,7 @@ But this is optional — the `definition` field is stored and served as a string
 - **CTA:** "Start Free" → /signup
 
 ### Pro Tier
+
 - **Price:** $19/month (or $190/year — 2 months free)
 - **Includes (everything in Free, plus):**
   - Up to 50 forms
@@ -968,6 +966,7 @@ But this is optional — the `definition` field is stored and served as a string
 - **CTA:** "Go Pro" → /signup?plan=pro
 
 ### Enterprise Tier
+
 - **Price:** Custom (starts at $499/month)
 - **Includes (everything in Pro, plus):**
   - Unlimited forms and fields
@@ -981,6 +980,7 @@ But this is optional — the `definition` field is stored and served as a string
 - **CTA:** "Contact Sales" → /contact (or mailto:sales@formbaker.dev)
 
 ### Design Notes
+
 - Free tier is prominent and not de-emphasized — it should feel generous, not crippled
 - Pro is highlighted (recommended badge, slightly elevated card)
 - Enterprise is plain (contact sales)

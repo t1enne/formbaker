@@ -17,7 +17,7 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid } from '@astrojs/starlight/components';
+import { Card, CardGrid } from "@astrojs/starlight/components";
 
 Formbaker is a **dynamic form engine** — not a form library. It manages
 form _structure_ (which fields exist, their visibility, their ordering)
@@ -28,28 +28,25 @@ handles form _state_.
 
 <CardGrid stagger>
   <Card title="Dynamic Fields" icon="sparkles">
-    Fields appear, disappear, and revalidate as users fill out the form.
-    No more nested <code>if (showX)</code> chains.
+    Fields appear, disappear, and revalidate as users fill out the form. No more nested{" "}
+    <code>if (showX)</code> chains.
   </Card>
   <Card title="Dependency Graph" icon="diagram">
-    Declare visibility rules as AND/OR/XOR dependencies. Cyclic
-    dependencies are caught immediately.
+    Declare visibility rules as AND/OR/XOR dependencies. Cyclic dependencies are caught immediately.
   </Card>
   <Card title="Serializable" icon="database">
-    Form definitions are pure JSON — storable in a database, editable in
-    a configurator UI, portable across stacks.
+    Form definitions are pure JSON — storable in a database, editable in a configurator UI, portable
+    across stacks.
   </Card>
   <Card title="Plug & Play" icon="plug">
-    Use Zod or ArkType for validation. Bring your own plugin. No
-    validation library is bundled.
+    Use Zod or ArkType for validation. Bring your own plugin. No validation library is bundled.
   </Card>
   <Card title="Immutable API" icon="lock">
-    Every mutation returns a new form. No side effects, easy to
-    integrate with React, Angular, or any state manager.
+    Every mutation returns a new form. No side effects, easy to integrate with React, Angular, or
+    any state manager.
   </Card>
   <Card title="Auto-numbering" icon="list-ordered">
-    Section-question numbers (1, 1.1, 1.2, 2…) recalculate
-    automatically as structure changes.
+    Section-question numbers (1, 1.1, 1.2, 2…) recalculate automatically as structure changes.
   </Card>
 </CardGrid>
 

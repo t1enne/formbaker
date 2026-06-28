@@ -10,24 +10,20 @@ description: Framework bridges — React Hook Form and Angular.
 ```ts
 import { useFormbakerForm } from "formbaker-integrations/react-hook-form";
 
-const {
-  register,
-  handleSubmit,
-  watch,
-  formState,
-  isInSchema,
-  visibleFields,
-} = useFormbakerForm(form, {
-  defaultValues: { name: "" },
-});
+const { register, handleSubmit, watch, formState, isInSchema, visibleFields } = useFormbakerForm(
+  form,
+  {
+    defaultValues: { name: "" },
+  },
+);
 ```
 
 Returns a standard `UseFormReturn` plus:
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `isInSchema` | `(id: string) => boolean` | Whether a field is visible given current values |
-| `visibleFields` | `string[]` | Array of currently visible field IDs |
+| Property        | Type                      | Description                                     |
+| --------------- | ------------------------- | ----------------------------------------------- |
+| `isInSchema`    | `(id: string) => boolean` | Whether a field is visible given current values |
+| `visibleFields` | `string[]`                | Array of currently visible field IDs            |
 
 All other properties are standard React Hook Form (`register`,
 `handleSubmit`, `watch`, `reset`, `formState`, etc.).
@@ -44,12 +40,12 @@ const updatedGroup = rebuildFormGroup(form, existingGroup, {
 });
 ```
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `form` | `FormbakerInstance` | The form engine instance |
-| `group` | `FormGroup` | Existing Angular FormGroup to rebuild |
-| `options.values` | `Record<string, unknown>` | Current values for visibility evaluation |
-| `options.validator` | `ValidatorFn` | Optional custom validator |
+| Parameter           | Type                      | Description                              |
+| ------------------- | ------------------------- | ---------------------------------------- |
+| `form`              | `FormbakerInstance`       | The form engine instance                 |
+| `group`             | `FormGroup`               | Existing Angular FormGroup to rebuild    |
+| `options.values`    | `Record<string, unknown>` | Current values for visibility evaluation |
+| `options.validator` | `ValidatorFn`             | Optional custom validator                |
 
 Returns a new `FormGroup` with controls matching visible fields. Controls
 for hidden fields are removed. Controls for newly-visible fields are

@@ -105,14 +105,10 @@ const form = create({
   },
   dependencies: {
     forward: {
-      has_vehicle: [
-        { source: "has_vehicle", target: "license_plate", condition: "true" },
-      ],
+      has_vehicle: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
     },
     backward: {
-      license_plate: [
-        { source: "has_vehicle", target: "license_plate", condition: "true" },
-      ],
+      license_plate: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
     },
   },
 });
@@ -255,8 +251,6 @@ form = addDependency(form, {
 form = addDependency(form, { source: "a", target: "c", condition: "true" }); // dependencyType defaults to "OR"
 ```
 
-
-
 #### How dependency types aggregate
 
 Dependencies with the **same `dependencyType`** are grouped and evaluated by that group's logic gate internally. Then the results of each gate are **OR'd together** — if any group says the target should be visible, it's visible.
@@ -268,11 +262,11 @@ This means one target field can have dependencies with different types. The eval
 3. Evaluate each bucket as a single boolean: all must pass for `AND`, any passes for `OR`, exactly one passes for `XOR`.
 4. If **any** bucket returns `true`, `c` is visible.
 
-| Expression | Type A→c | Type B→c | Outcome |
-|------------|----------|----------|---------|
-| A **OR** B | `OR` | `OR` | default — either makes c visible |
-| A **AND** B | `AND` | `AND` | both must be `true` for c to show |
-| A **XOR** B | `XOR` | `XOR` | exactly one must be `true` |
+| Expression         | Type A→c    | Type B→c    | Outcome                                            |
+| ------------------ | ----------- | ----------- | -------------------------------------------------- |
+| A **OR** B         | `OR`        | `OR`        | default — either makes c visible                   |
+| A **AND** B        | `AND`       | `AND`       | both must be `true` for c to show                  |
+| A **XOR** B        | `XOR`       | `XOR`       | exactly one must be `true`                         |
 | **(A AND B) OR C** | `AND` (A→c) | `AND` (B→c) | the AND group fails, the OR group passes → c shows |
 
 In the last row, C's `OR` dependency is on a third field. The AND bucket returns `false` (A is false or B is false), but the OR bucket returns `true` (C is true), so `c` is visible. This is how you compose different logical operators on the same target.

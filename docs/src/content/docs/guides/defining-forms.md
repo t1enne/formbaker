@@ -10,8 +10,12 @@ import { create } from "formbaker";
 
 const form = create(
   { pluginName: "zod" },
-  [/* nodes */],
-  [/* dependencies */],
+  [
+    /* nodes */
+  ],
+  [
+    /* dependencies */
+  ],
 );
 ```
 
@@ -149,6 +153,6 @@ recalculated automatically — positions are zero-indexed.
 Formbaker produces section-question numbering: 1, 1.1, 1.2, 2, 2.1…
 
 ```ts
-form.produce().numbering
+form.produce().numbering;
 // { "name": "1.1", "email": "1.2", "bio": "2.1" }
 ```
