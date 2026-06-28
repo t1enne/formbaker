@@ -2,6 +2,9 @@
  * Angular FormBuilder integration tests with happy-dom.
  *
  * Uses the real @angular/forms FormBuilder and Validators.
+ * Tests formbakerToFormGroup and rebuildFormGroup directly, which is the
+ * correct level for Angular — these produce FormGroup instances with
+ * controls that consumers iterate in templates via *ngIf / formControlName.
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { create, addNode, addDependency, registerPlugin } from "formbaker";
@@ -11,57 +14,66 @@ import "@angular/platform-browser-dynamic";
 import { FormBuilder } from "@angular/forms";
 import { formbakerToFormGroup, rebuildFormGroup } from "../src/angular";
 
-describe("angular FormBuilder integration (real)", () => {
-  const testPlugin: FormbakerPlugin = {
-    field: (_f) => ({
-      "~standard": {
-        version: 1,
-        vendor: "test",
-        validate: (v: unknown) => ({ value: v }),
-      },
-    }),
-    mergeFields: (_fs) => ({
-      "~standard": {
-        version: 1,
-        vendor: "test",
-        validate: (v: unknown) => {
-          if (v === null || typeof v !== "object")
-            return { issues: [{ message: "not object" }] };
-          return { value: v };
-        },
-      },
-    }),
-    evaluateCondition: (condition, value) => {
-      if (condition === "true") return value != null && value !== false;
-      return true;
+const testPlugin: FormbakerPlugin = {
+  field: (_f) => ({
+    "~standard": {
+      version: 1,
+      vendor: "test",
+      validate: (v: unknown) => ({ value: v }),
     },
-  };
+  }),
+  mergeFields: (_fs) => ({
+    "~standard": {
+      version: 1,
+      vendor: "test",
+      validate: (v: unknown) => {
+        if (v === null || typeof v !== "object")
+          return { issues: [{ message: "not object" }] };
+        return { value: v };
+      },
+    },
+  }),
+  evaluateCondition: (condition, value) => {
+    if (condition === "true") return value != null && value !== false;
+    return true;
+  },
+};
 
-  beforeAll(() => {
-    registerPlugin("test", testPlugin);
-  });
+beforeAll(() => {
+  registerPlugin("test", testPlugin);
+});
 
+/** Build a zod-backed form with the given field definitions. */
+function buildForm(...fields: Parameters<typeof addNode>[1][]) {
+  return fields.reduce(
+    (f, node) => addNode(f, node),
+    create({ pluginName: "zod" }),
+  );
+}
+
+/** Build a test-plugin form with toggle/name/extra and a dependency. */
+function buildVisibilityForm() {
+  let f = create({ pluginName: "test" });
+  f = addNode(f, { id: "toggle", type: "field", fieldType: "checkbox" });
+  f = addNode(f, { id: "name", type: "field", fieldType: "text" });
+  f = addNode(f, { id: "extra", type: "field", fieldType: "text" });
+  f = addDependency(f, { source: "toggle", target: "extra", condition: "true" });
+  return f;
+}
+
+describe("angular FormBuilder integration (real)", () => {
   it("produces one control per field with correct default values", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "field", fieldType: "text" });
-    form = addNode(form, { id: "age", type: "field", fieldType: "number" });
-    form = addNode(form, { id: "agree", type: "field", fieldType: "checkbox" });
-    form = addNode(form, {
-      id: "color",
-      type: "field",
-      fieldType: "select",
-      options: ["x", "y"],
-    });
+    const form = buildForm(
+      { id: "name", type: "field", fieldType: "text" },
+      { id: "age", type: "field", fieldType: "number" },
+      { id: "agree", type: "field", fieldType: "checkbox" },
+      { id: "color", type: "field", fieldType: "select", options: ["x", "y"] },
+    );
 
     const fb = new FormBuilder();
     const group = formbakerToFormGroup(form, fb);
 
-    expect(Object.keys(group.controls)).toEqual([
-      "name",
-      "age",
-      "agree",
-      "color",
-    ]);
+    expect(Object.keys(group.controls)).toEqual(["name", "age", "agree", "color"]);
     expect(group.get("name")?.value).toBe("");
     expect(group.get("age")?.value).toBeNull();
     expect(group.get("agree")?.value).toBe(false);
@@ -69,22 +81,12 @@ describe("angular FormBuilder integration (real)", () => {
   });
 
   it("applies required/min/max validators and rejects invalid values", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
-      id: "name",
-      type: "field",
-      fieldType: "text",
-      validation: { required: true },
-    });
-    form = addNode(form, {
-      id: "age",
-      type: "field",
-      fieldType: "number",
-      validation: { min: 18, max: 120 },
-    });
+    const form = buildForm(
+      { id: "name", type: "field", fieldType: "text", validation: { required: true } },
+      { id: "age", type: "field", fieldType: "number", validation: { min: 18, max: 120 } },
+    );
 
-    const fb = new FormBuilder();
-    const group = formbakerToFormGroup(form, fb);
+    const group = formbakerToFormGroup(form, new FormBuilder());
 
     expect(group.valid).toBe(false);
     expect(group.get("name")?.valid).toBe(false);
@@ -97,27 +99,21 @@ describe("angular FormBuilder integration (real)", () => {
     expect(group.valid).toBe(true);
 
     group.get("age")?.setValue(17);
-    expect(group.get("age")?.errors).toEqual({
-      min: { min: 18, actual: 17 },
-    });
+    expect(group.get("age")?.errors).toEqual({ min: { min: 18, actual: 17 } });
 
     group.get("age")?.setValue(200);
-    expect(group.get("age")?.errors).toEqual({
-      max: { max: 120, actual: 200 },
-    });
+    expect(group.get("age")?.errors).toEqual({ max: { max: 120, actual: 200 } });
   });
 
   it("omits required validator for optional fields", () => {
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, {
+    const form = buildForm({
       id: "bio",
       type: "field",
       fieldType: "textarea",
       validation: { min: 10 },
     });
 
-    const fb = new FormBuilder();
-    const group = formbakerToFormGroup(form, fb);
+    const group = formbakerToFormGroup(form, new FormBuilder());
 
     expect(group.get("bio")?.valid).toBe(true);
 
@@ -129,108 +125,58 @@ describe("angular FormBuilder integration (real)", () => {
   });
 
   it("produces empty group when no fields", () => {
-    const fb = new FormBuilder();
-    const group = formbakerToFormGroup(create({ pluginName: "zod" }), fb);
+    const group = formbakerToFormGroup(create({ pluginName: "zod" }), new FormBuilder());
     expect(Object.keys(group.controls)).toEqual([]);
   });
 
   describe("visibility with opts.values", () => {
     it("formbakerToFormGroup excludes fields hidden by a dependency", () => {
-      let form = create({ pluginName: "test" });
-      form = addNode(form, {
-        id: "trigger",
-        type: "field",
-        fieldType: "checkbox",
-      });
-      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
-      form = addDependency(form, {
-        source: "trigger",
-        target: "target",
-        condition: "true",
-      });
-
+      const form = buildVisibilityForm();
       const fb = new FormBuilder();
 
-      const hidden = formbakerToFormGroup(form, fb, {
-        values: { trigger: false },
-      });
-      expect(Object.keys(hidden.controls)).toEqual(["trigger"]);
+      const hidden = formbakerToFormGroup(form, fb, { values: { toggle: false } });
+      expect(Object.keys(hidden.controls)).toEqual(["toggle", "name"]);
 
-      const visible = formbakerToFormGroup(form, fb, {
-        values: { trigger: true },
-      });
-      expect(Object.keys(visible.controls)).toEqual(["trigger", "target"]);
+      const visible = formbakerToFormGroup(form, fb, { values: { toggle: true } });
+      expect(Object.keys(visible.controls)).toEqual(["toggle", "name", "extra"]);
     });
 
     it("rebuildFormGroup removes hidden fields when values are provided", () => {
-      let form = create({ pluginName: "test" });
-      form = addNode(form, {
-        id: "trigger",
-        type: "field",
-        fieldType: "checkbox",
-      });
-      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
-      form = addDependency(form, {
-        source: "trigger",
-        target: "target",
-        condition: "true",
-      });
-
+      const form = buildVisibilityForm();
       const fb = new FormBuilder();
       const group = fb.group({
-        trigger: fb.control(false),
-        target: fb.control("hello"),
+        toggle: fb.control(false),
+        name: fb.control("hello"),
+        extra: fb.control("world"),
       });
 
-      rebuildFormGroup(form, group, fb, { values: { trigger: false } });
-      expect(Object.keys(group.controls)).toEqual(["trigger"]);
+      rebuildFormGroup(form, group, fb, { values: { toggle: false } });
+      expect(Object.keys(group.controls)).toEqual(["toggle", "name"]);
     });
 
     it("rebuildFormGroup adds newly-visible fields when values change", () => {
-      let form = create({ pluginName: "test" });
-      form = addNode(form, {
-        id: "trigger",
-        type: "field",
-        fieldType: "checkbox",
-      });
-      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
-      form = addDependency(form, {
-        source: "trigger",
-        target: "target",
-        condition: "true",
-      });
-
+      const form = buildVisibilityForm();
       const fb = new FormBuilder();
       const group = fb.group({
-        trigger: fb.control(true),
+        toggle: fb.control(true),
+        name: fb.control("hello"),
       });
 
-      rebuildFormGroup(form, group, fb, { values: { trigger: true } });
-      expect(Object.keys(group.controls)).toEqual(["trigger", "target"]);
+      rebuildFormGroup(form, group, fb, { values: { toggle: true } });
+      expect(Object.keys(group.controls)).toEqual(["toggle", "name", "extra"]);
     });
 
-    it("rebuildFormGroup preserves existing control values on add", () => {
-      let form = create({ pluginName: "test" });
-      form = addNode(form, {
-        id: "trigger",
-        type: "field",
-        fieldType: "checkbox",
-      });
-      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
-      form = addDependency(form, {
-        source: "trigger",
-        target: "target",
-        condition: "true",
-      });
-
+    it("rebuildFormGroup preserves existing control values", () => {
+      const form = buildVisibilityForm();
       const fb = new FormBuilder();
       const group = fb.group({
-        trigger: fb.control(true),
-        target: fb.control("existing"),
+        toggle: fb.control(true),
+        name: fb.control("unchanged"),
+        extra: fb.control("keepme"),
       });
 
-      rebuildFormGroup(form, group, fb, { values: { trigger: true } });
-      expect(group.get("target")?.value).toBe("existing");
+      rebuildFormGroup(form, group, fb, { values: { toggle: true } });
+      expect(group.get("extra")?.value).toBe("keepme");
     });
   });
 
@@ -241,14 +187,10 @@ describe("angular FormBuilder integration (real)", () => {
       remove: fb.control("remove"),
     });
 
-    let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "keep", type: "field", fieldType: "text" });
-    form = addNode(form, {
-      id: "email",
-      type: "field",
-      fieldType: "text",
-      validation: { required: true },
-    });
+    const form = buildForm(
+      { id: "keep", type: "field", fieldType: "text" },
+      { id: "email", type: "field", fieldType: "text", validation: { required: true } },
+    );
 
     rebuildFormGroup(form, group, fb);
 

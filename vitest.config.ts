@@ -7,14 +7,14 @@ export default defineConfig({
       {
         test: {
           name: "node",
-          include: ["packages/**/!(*.dom).spec.ts"],
+          include: ["packages/**/!(*.dom).spec.ts", "packages/**/!(*.dom).spec.tsx"],
           environment: "node",
         },
       },
       {
         test: {
           name: "dom",
-          include: ["packages/**/*.dom.spec.ts"],
+          include: ["packages/**/*.dom.spec.ts", "packages/**/*.dom.spec.tsx"],
           environment: "happy-dom",
         },
       },
