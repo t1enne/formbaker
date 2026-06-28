@@ -1,5 +1,5 @@
 import { create, validate, registerPlugin } from "formbaker";
-import { testPlugin } from "./testPlugin";
+import { testPlugin } from "formbaker/test-utils";
 import { describe, it, expect, beforeAll } from "vitest";
 
 describe("select field", () => {

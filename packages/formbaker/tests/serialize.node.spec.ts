@@ -7,7 +7,7 @@
  */
 import { describe, expect, it, beforeAll } from "vitest";
 import { create, validate, registerPlugin } from "formbaker";
-import { testPlugin } from "./testPlugin";
+import { testPlugin } from "formbaker/test-utils";
 
 describe("serialization", () => {
   beforeAll(() => {

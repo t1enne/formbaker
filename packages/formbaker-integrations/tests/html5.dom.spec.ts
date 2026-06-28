@@ -6,6 +6,7 @@
  */
 import { describe, expect, it, beforeAll, beforeEach, afterEach } from "vitest";
 import { create, addNode, addDependency, registerPlugin } from "formbaker";
+import { testPlugin, buildForm } from "formbaker/test-utils";
 import type { FormbakerPlugin } from "formbaker";
 import {
   validateForm,
@@ -13,16 +14,15 @@ import {
   attachCustomValidation,
 } from "../src/html5";
 
-// --- Test plugin ---
+// --- HTML5-specific test plugin ---
+//
+// Extends the shared testPlugin with richer per-field messages so tests can
+// assert on specific error text. The shared plugin's mergeFields produces
+// laconic issues (e.g. "name is required"). This one adds custom messages
+// for the assertion patterns needed by the HTML5 integration tests.
 
-const testPlugin: FormbakerPlugin = {
-  field: (_f) => ({
-    "~standard": {
-      version: 1,
-      vendor: "test",
-      validate: (v: unknown) => ({ value: v }),
-    },
-  }),
+const html5TestPlugin: FormbakerPlugin = {
+  ...testPlugin,
   mergeFields: (_fs) => ({
     "~standard": {
       version: 1,
@@ -57,14 +57,10 @@ const testPlugin: FormbakerPlugin = {
       },
     },
   }),
-  evaluateCondition: (condition, value) => {
-    if (condition === "true") return value != null && value !== false;
-    return true;
-  },
 };
 
 beforeAll(() => {
-  registerPlugin("test", testPlugin);
+  registerPlugin("test", html5TestPlugin);
 });
 
 // --- Helpers ---
@@ -104,14 +100,6 @@ function createFormDOM(
     },
     elements,
   };
-}
-
-/** Build a test-plugin form. */
-function buildForm(...fields: Parameters<typeof addNode>[1][]) {
-  return fields.reduce(
-    (f, node) => addNode(f, node),
-    create({ pluginName: "test" }),
-  );
 }
 
 function cleanupDOM() {
@@ -353,7 +341,11 @@ describe("HTML5 Constraint Validation integration", () => {
         condition: "true",
       });
 
-      const { getElement, setValue } = createFormDOM([{ id: "toggle", type: "checkbox" }, { id: "name" }, { id: "extra" }]);
+      const { getElement, setValue } = createFormDOM([
+        { id: "toggle", type: "checkbox" },
+        { id: "name" },
+        { id: "extra" },
+      ]);
       const cleanup = attachCustomValidation(f, getElement);
 
       const extraEl = getElement("extra") as HTMLInputElement;

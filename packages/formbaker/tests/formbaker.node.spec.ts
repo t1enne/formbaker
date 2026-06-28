@@ -6,7 +6,7 @@ import {
   isVisible,
   addDependency,
 } from "formbaker";
-import { testPlugin } from "./testPlugin";
+import { testPlugin } from "formbaker/test-utils";
 import { describe, expect, it, beforeAll } from "vitest";
 
 describe("formbaker", () => {

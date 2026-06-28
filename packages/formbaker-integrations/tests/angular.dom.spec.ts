@@ -7,59 +7,16 @@
  * controls that consumers iterate in templates via *ngIf / formControlName.
  */
 import { describe, expect, it, beforeAll } from "vitest";
-import { create, addNode, addDependency, registerPlugin } from "formbaker";
-import type { FormbakerPlugin } from "formbaker";
+import { create, registerPlugin } from "formbaker";
+import { testPlugin, buildForm, buildVisibilityForm } from "formbaker/test-utils";
 // Angular JIT requires the platform to be loaded before @angular/forms.
 import "@angular/platform-browser-dynamic";
 import { FormBuilder } from "@angular/forms";
 import { formbakerToFormGroup, rebuildFormGroup } from "../src/angular";
 
-const testPlugin: FormbakerPlugin = {
-  field: (_f) => ({
-    "~standard": {
-      version: 1,
-      vendor: "test",
-      validate: (v: unknown) => ({ value: v }),
-    },
-  }),
-  mergeFields: (_fs) => ({
-    "~standard": {
-      version: 1,
-      vendor: "test",
-      validate: (v: unknown) => {
-        if (v === null || typeof v !== "object")
-          return { issues: [{ message: "not object" }] };
-        return { value: v };
-      },
-    },
-  }),
-  evaluateCondition: (condition, value) => {
-    if (condition === "true") return value != null && value !== false;
-    return true;
-  },
-};
-
 beforeAll(() => {
   registerPlugin("test", testPlugin);
 });
-
-/** Build a zod-backed form with the given field definitions. */
-function buildForm(...fields: Parameters<typeof addNode>[1][]) {
-  return fields.reduce(
-    (f, node) => addNode(f, node),
-    create({ pluginName: "zod" }),
-  );
-}
-
-/** Build a test-plugin form with toggle/name/extra and a dependency. */
-function buildVisibilityForm() {
-  let f = create({ pluginName: "test" });
-  f = addNode(f, { id: "toggle", type: "field", fieldType: "checkbox" });
-  f = addNode(f, { id: "name", type: "field", fieldType: "text" });
-  f = addNode(f, { id: "extra", type: "field", fieldType: "text" });
-  f = addDependency(f, { source: "toggle", target: "extra", condition: "true" });
-  return f;
-}
 
 describe("angular FormBuilder integration (real)", () => {
   it("produces one control per field with correct default values", () => {
@@ -125,7 +82,7 @@ describe("angular FormBuilder integration (real)", () => {
   });
 
   it("produces empty group when no fields", () => {
-    const group = formbakerToFormGroup(create({ pluginName: "zod" }), new FormBuilder());
+    const group = formbakerToFormGroup(create({ pluginName: "test" }), new FormBuilder());
     expect(Object.keys(group.controls)).toEqual([]);
   });
 

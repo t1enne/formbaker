@@ -9,7 +9,7 @@ import {
   validate,
   registerPlugin,
 } from "../src/engine";
-import { testPlugin } from "./testPlugin";
+import { testPlugin } from "formbaker/test-utils";
 
 describe("sections as tree nodes", () => {
   beforeAll(() => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { addNode, create, getSortedNodes, getOrderingMap, registerPlugin } from "formbaker";
-import { testPlugin } from "./testPlugin";
+import { testPlugin } from "formbaker/test-utils";
 
 describe("getOrderingMap", () => {
   beforeAll(() => {
