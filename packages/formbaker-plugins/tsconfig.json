@@ -4,6 +4,6 @@
     "outDir": "./dist",
     "rootDir": "."
   },
-  "include": ["*.ts"],
+  "include": ["arktype", "zod"],
   "exclude": ["tests", "vitest.config.ts"]
 }

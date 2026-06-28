@@ -1,0 +1,19 @@
+# @formbaker/integrations
+
+Framework integrations for Formbaker — bridges between Formbaker form definitions and popular form state / validation libraries.
+
+## Available integrations
+
+| Integration     | Doc                                       | Import                                                                                     |
+| --------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ |
+| React Hook Form | [Readme](./src/react-hook-form/README.md) | `import { useFormbakerForm } from "@formbaker/integrations/react-hook-form"`               |
+| Angular         | [Readme](./src/angular/README.md)         | `import { formbakerToFormGroup, rebuildFormGroup } from "@formbaker/integrations/angular"` |
+| NestJS          | [Readme](./src/nest/README.md)            | `import { formbakerToClassValidator } from "@formbaker/integrations/nest"`                 |
+
+## Overview
+
+Each integration consumes a Formbaker form definition (or a schema derived from it) and produces something the target framework can use:
+
+- **React Hook Form** — a `useForm` hook pre-configured with a `resolver` that rebuils the validation schema on every value change. Handles dependency-driven visibility automatically — hidden fields don't validate.
+- **Angular** — builds or rebuilds an `@angular/forms` `FormGroup` from a Formbaker form. `rebuildFormGroup` adds/removes controls as dependencies change visibility.
+- **NestJS** — generates TypeScript source code for a class-validator decorated DTO class. Static code generation (not runtime adapter).

@@ -2,17 +2,19 @@
 
 **Dynamic form engine** — build forms where fields appear, disappear, and revalidate based on user input.
 
-Formbaker is not a form library like React Hook Form or TanStack Form. It's a lightweight engine that manages form _structure_ (fields, sections, dependencies) and dynamically derives a **Standard Schema V1** from the current form state and visible fields. Validation is delegated to a **plugin** — currently ArkType and Zod are built-in. Plugins are registered by name, keeping form definitions fully **serializable as JSON**.
+Formbaker is **not** a form library like React Hook Form or Angular Forms — it **complements** them. It's a lightweight engine that manages form _structure_ (fields, sections, dependencies) while the form library handles form state (values, dirty tracking, submission). The integrations bridge the two layers automatically.
+
+The engine dynamically derives a **Standard Schema V1** from the current form state and visible fields. Validation is delegated to a **plugin** — currently ArkType and Zod are built-in. Plugins are registered by name, keeping form definitions fully **serializable as JSON**.
 
 Form definitions are pure data — no functions, no imports. This makes them storable in a database, editable in a configurator UI, and portable across stacks. The form you `create({ pluginName: "zod" })` by hand is indistinguishable from one loaded by `JSON.parse()`.
 
-If your forms are mostly static — fields are always the same — use Formbaker's dependencies directly (React Hook Form + raw schemas) or TanStack Form. If your forms have complex conditional visibility rules or you're building a form configurator that stores and reloads form schemas, Formbaker gives you a declarative dependency graph for that.
-
 ## Features
 
+- **Immutable API** — `addNode`, `addDependency`, `removeNode`, `moveNode`, etc. all return a new form without modifying the original.
 - **Dependency-driven visibility** — fields and sections show/hide based on runtime conditions evaluated against other field values. Dependencies are declared as plain schemas.
+- **AND / OR / XOR dependencies** — combine multiple dependencies on the same target using logical combinators. Defaults to OR.
 - **Cyclic dependency detection** — adding an edge that would create a cycle throws immediately.
-- **Sections** — group fields into labelled, ordered sections with optional description.
+- **Sections** — group fields into labelled, ordered sections with optional description. Sections support nested child fields via `parentId`.
 - **Field types** — text, number, checkbox, radio, textarea, select, file. Each has type-specific validation (min/max length, min/max value, allowed options).
 - **Per-field validation** — required, min, max.
 - **Reordering** — move fields and sections relative to each other; ordering is recalculated automatically.
@@ -20,6 +22,39 @@ If your forms are mostly static — fields are always the same — use Formbaker
 - **Plug into React Hook Form** — `useFormbakerForm` hook provides a resolver that rebuilds the schema on value changes.
 - **Serializable** — form definitions contain only data (strings, numbers, objects). No functions. `JSON.stringify`/`JSON.parse` round-trips cleanly. Designed for form configurators that store and reload schemas from a database or CMS.
 - **Plugin system** — swap validation backends via a named plugin registry. No plugin dependency is bundled unless you register it.
+
+## How it complements your form library
+
+Formbaker isn't a form state library — it's a form _structure_ engine. You use it alongside your existing form library, not instead of it.
+
+### React Hook Form
+
+The `useFormbakerForm` hook returns a standard `UseFormReturn` with a resolver that dynamically rebuilds the validation schema every render. As fields are shown or hidden by dependencies, the schema updates — no manual `watch()` chains, no conditional validation logic in your components.
+
+→ See the [React Hook Form integration](./packages/formbaker-integrations/src/react-hook-form/) for a full example.
+
+### Angular Reactive Forms
+
+`rebuildFormGroup` syncs an Angular `FormGroup` to match the form's current structure. When a dependency hides a section, all its child controls are removed from the group so they don't participate in validation. When it reappears, controls are re-added with their previous values preserved.
+
+→ See the [Angular integration](./packages/formbaker-integrations/src/angular/) for a full example.
+
+### NestJS / class-validator
+
+`formbakerToClassValidator` generates TypeScript source code for a DTO class decorated with class-validator decorators. Handy when you define the form on the frontend and need a matching backend DTO.
+
+→ See the [NestJS integration](./packages/formbaker-integrations/src/nest/) for a full example.
+
+### When it pulls its weight
+
+Formbaker shines when your form structure isn't fixed at build time:
+
+- **Form configurators** — users build forms in a drag-and-drop UI. Fields, sections, and dependencies are stored as JSON in a CMS and restored at runtime.
+- **Complex conditional logic** — 20+ fields where visibility chains span multiple levels. A dependency graph is easier to reason about than nested `if(showX) { if(showY) { ... } }` conditions.
+- **Admin panels with user-defined schemas** — letting non-developers compose survey forms, application forms, or dynamic checkout flows.
+- **Dynamic numbering** — auto-numbering (1, 1.1, 1.2, 2, …) that stays correct as sections are added, removed, or reordered.
+
+For a simple static form with a handful of fields, use your form library directly. For anything that feels like a form configurator, Formbaker removes the complexity from the library layer.
 
 ## How it works
 
@@ -43,28 +78,80 @@ registerPlugin("zod", zodPlugin);
 
 ### 2. Create a form
 
+The simplest form starts with `create`. All data — fields, sections, dependencies — can be declared inline in a single call. No mutations, no rebinding:
+
 ```ts
-import { create, addNode, addDependency, validate } from "formbaker";
+import { create } from "formbaker";
 
-const form = create({ id: "my-form", pluginName: "arktype" });
-
-addNode(form, {
-  id: "has_vehicle",
-  type: "checkbox",
-  label: { eng: "Do you have a vehicle?" },
+const form = create({
+  pluginName: "arktype",
+  nodes: {
+    has_vehicle: {
+      id: "has_vehicle",
+      type: "field",
+      fieldType: "checkbox",
+      label: { eng: "Do you have a vehicle?" },
+    },
+    license_plate: {
+      id: "license_plate",
+      type: "field",
+      fieldType: "text",
+      validation: { required: true },
+    },
+  },
+  dependencies: {
+    forward: {
+      has_vehicle: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
+    },
+    backward: {
+      license_plate: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
+    },
+  },
 });
-addNode(form, {
+```
+
+For incremental building — e.g. responding to user interaction in a configurator UI — use `addNode`. Every function is **immutable**: it returns a new form and leaves the original untouched.
+
+```ts
+import { create, addNode, addDependency } from "formbaker";
+
+const base = create({ pluginName: "arktype" });
+
+// Add a checkbox — base is unchanged
+const withVehicle = addNode(base, {
+  id: "has_vehicle",
+  type: "field",
+  fieldType: "checkbox",
+});
+
+// Add a text field — withVehicle is unchanged
+const withPlate = addNode(withVehicle, {
   id: "license_plate",
-  type: "text",
+  type: "field",
+  fieldType: "text",
   validation: { required: true },
 });
 
-addDependency(form, {
+// Wire them together — withPlate is unchanged
+const final = addDependency(withPlate, {
   source: "has_vehicle",
   target: "license_plate",
   condition: "true",
 });
+
+// base still has zero nodes, withVehicle has one, final has everything
+console.log(Object.keys(base.nodes).length); // 0
+console.log(Object.keys(withVehicle.nodes).length); // 1
+console.log(Object.keys(final.nodes).length); // 2
 ```
+
+Because every operation returns a new snapshot, you get several properties for free:
+
+- **Time-travel debugging** — keep refs to intermediate states and diff them to understand what changed.
+- **Undo/redo** — build a stack of form snapshots as the user edits. No diffing or patching required.
+- **Concurrent edit safety** — multiple parts of a UI (or multiple users) can read from a shared ref without fear of another part mutating it mid-flight.
+- **Predictable `shouldComponentUpdate`** — reference equality checks (`===`) reliably detect changes in React or any virtual-DOM framework.
+- **Serializable history** — every snapshot is plain JSON; persist every edit for audit trails or collaborative replay.
 
 ### 3. Validate
 
@@ -78,7 +165,91 @@ validate(form, { has_vehicle: false });
 
 When `has_vehicle` is `false`, `license_plate` is excluded from validation entirely — no error, no required check.
 
-### 4. Serialize and restore
+### 4. Sections with children
+
+Sections group fields together. A section's `id` must start with `#`. Child fields link to their parent via `parentId`:
+
+```ts
+let form = create({ pluginName: "arktype" });
+
+form = addNode(form, {
+  id: "#personal",
+  type: "section",
+  label: "Personal Information",
+  description: "Basic contact details",
+});
+
+form = addNode(form, {
+  id: "name",
+  type: "field",
+  fieldType: "text",
+  label: "Full name",
+  parentId: "#personal",
+  validation: { required: true },
+});
+
+form = addNode(form, {
+  id: "email",
+  type: "field",
+  fieldType: "text",
+  label: "Email",
+  parentId: "#personal",
+  validation: { required: true },
+});
+```
+
+Children are ordered independently within their parent section. Removing a section cascades — all children are removed and their dependency edges are cleaned up.
+
+### 5. AND / OR / XOR dependencies
+
+Multiple dependencies on the same target combine logically via `dependencyType`:
+
+```ts
+let form = create({ pluginName: "arktype" });
+form = addNode(form, { id: "a", type: "field", fieldType: "checkbox" });
+form = addNode(form, { id: "b", type: "field", fieldType: "checkbox" });
+form = addNode(form, {
+  id: "c",
+  type: "field",
+  fieldType: "text",
+  validation: { required: true },
+});
+
+// AND — both a AND b must be true for c to show
+form = addDependency(form, {
+  source: "a",
+  target: "c",
+  condition: "true",
+  dependencyType: "AND",
+});
+form = addDependency(form, {
+  source: "b",
+  target: "c",
+  condition: "true",
+  dependencyType: "AND",
+});
+
+// XOR — exactly one of the dependencies must pass
+form = addDependency(form, {
+  source: "a",
+  target: "c",
+  condition: "true",
+  dependencyType: "XOR",
+});
+form = addDependency(form, {
+  source: "b",
+  target: "c",
+  condition: "true",
+  dependencyType: "XOR",
+});
+
+// OR is the default — any dependency passing shows the target
+form = addDependency(form, { source: "a", target: "c", condition: "true" }); // dependencyType defaults to "OR"
+```
+
+Groups of the same `dependencyType` are evaluated internally by their combinator, then **OR'd** together across groups. So you can express "(A AND B) OR C" by assigning `AND` to the A→target and B→target deps, and `OR` (default) to the C→target dep.
+
+### 6. Serialize and restore
 
 ```ts
 const json = JSON.stringify(form);
@@ -98,159 +269,59 @@ Picture a drag-and-drop UI where admins compose forms from a palette of field ty
 ```json
 {
   "pluginName": "zod",
-  "fields": [
-    { "id": "has_vehicle", "type": "checkbox", "label": { "eng": "Do you have a vehicle?" } },
-    { "id": "license_plate", "type": "text", "validation": { "required": true } }
-  ],
-  "dependencies": [{ "source": "has_vehicle", "target": "license_plate", "condition": "true" }]
-}
-```
-
-Later, when a user fills out that form, you `create()` from the stored JSON and call `validate()`. The plugin is resolved by name — the form definition never touches validation code. Same JSON, same behavior, whether it was built by hand or by a configurator.
-
-## Integration examples
-
-### Zod + React Hook Form
-
-```bash
-npm install formbaker @formbaker/plugins @formbaker/integrations zod react-hook-form
-```
-
-```tsx
-import { create, addNode, addDependency, registerPlugin } from "formbaker";
-import { zodPlugin } from "@formbaker/plugins/zod";
-import { useFormbakerForm } from "@formbaker/integrations/react-hook-form";
-
-// 1. Register the Zod plugin once (e.g. in your app entry point)
-registerPlugin("zod", zodPlugin);
-
-// 2. Declare the form structure — pure data, serializable
-const vehicleForm = create({ pluginName: "zod" });
-
-addNode(vehicleForm, {
-  id: "has_vehicle",
-  type: "checkbox",
-  label: "Do you own a vehicle?",
-});
-
-addNode(vehicleForm, {
-  id: "license_plate",
-  type: "text",
-  label: "License plate number",
-  validation: { required: { message: "License plate is required" }, min: 3 },
-});
-
-addDependency(vehicleForm, {
-  source: "has_vehicle",
-  target: "license_plate",
-  condition: "true",
-});
-
-// 3. Use in a React component
-function VehicleForm() {
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useFormbakerForm(vehicleForm, watch());
-
-  return (
-    <form onSubmit={handleSubmit((data) => console.log(data))}>
-      <label>
-        <input type="checkbox" {...register("has_vehicle")} />I own a vehicle
-      </label>
-
-      {/* license_plate only renders (and validates) when has_vehicle is true */}
-      <label>
-        License plate:
-        <input {...register("license_plate")} />
-        {errors.license_plate && <span>{errors.license_plate.message}</span>}
-      </label>
-
-      <button type="submit">Submit</button>
-    </form>
-  );
-}
-```
-
-When `has_vehicle` is unchecked, `license_plate` is excluded from the schema entirely — no validation runs on it. Check the box and the required/min-length rules kick in automatically.
-
-### ArkType + Angular
-
-```bash
-npm install formbaker @formbaker/plugins @formbaker/integrations arktype @angular/forms
-```
-
-```ts
-import { create, addNode, addDependency, registerPlugin } from "formbaker";
-import { arktypePlugin } from "@formbaker/plugins/arktype";
-import { rebuildFormGroup } from "@formbaker/integrations/angular";
-import { Component, inject } from "@angular/core";
-import { FormBuilder, Validators, ReactiveFormsModule } from "@angular/forms";
-
-// 1. Register the ArkType plugin once
-registerPlugin("arktype", arktypePlugin);
-
-// 2. Declare the form structure
-const insuranceForm = create({ pluginName: "arktype" });
-
-addNode(insuranceForm, {
-  id: "name",
-  type: "text",
-  label: "Full name",
-  validation: { required: true },
-});
-
-addNode(insuranceForm, {
-  id: "age",
-  type: "number",
-  label: "Age",
-  validation: { min: 0, max: 120 },
-});
-
-addNode(insuranceForm, {
-  id: "plan",
-  type: "select",
-  label: "Insurance plan",
-  options: ["Basic", "Standard", "Premium"],
-});
-
-@Component({
-  selector: "app-insurance-form",
-  standalone: true,
-  imports: [ReactiveFormsModule],
-  template: `
-    <form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
-      <input formControlName="name" placeholder="Full name" />
-      <input formControlName="age" type="number" placeholder="Age" />
-      <select formControlName="plan">
-        <option value="">Select plan</option>
-        <option value="0">Basic</option>
-        <option value="1">Standard</option>
-        <option value="2">Premium</option>
-      </select>
-      <button type="submit" [disabled]="formGroup.invalid">Submit</button>
-    </form>
-  `,
-})
-export class InsuranceFormComponent {
-  private fb = inject(FormBuilder);
-  formGroup = this.fb.group({});
-
-  constructor() {
-    rebuildFormGroup(insuranceForm, this.formGroup, this.fb, Validators);
-  }
-
-  onSubmit() {
-    if (this.formGroup.valid) {
-      console.log(this.formGroup.value);
+  "nodes": {
+    "has_vehicle": {
+      "id": "has_vehicle",
+      "type": "field",
+      "fieldType": "checkbox",
+      "label": { "eng": "Do you have a vehicle?" },
+      "order": 1
+    },
+    "license_plate": {
+      "id": "license_plate",
+      "type": "field",
+      "fieldType": "text",
+      "label": { "eng": "License plate" },
+      "validation": { "required": true },
+      "order": 2
+    }
+  },
+  "dependencies": {
+    "forward": {
+      "has_vehicle": [
+        {
+          "source": "has_vehicle",
+          "target": "license_plate",
+          "condition": "true"
+        }
+      ]
+    },
+    "backward": {
+      "license_plate": [
+        {
+          "source": "has_vehicle",
+          "target": "license_plate",
+          "condition": "true"
+        }
+      ]
     }
   }
 }
 ```
 
-ArkType schemas are built from the form definition and applied as Angular validators. When dependencies hide fields, `rebuildFormGroup` removes their controls from the group so they don't participate in validation.
+Later, when a user fills out that form, you `create()` from the stored JSON and call `validate()`. The plugin is resolved by name — the form definition never touches validation code. Same JSON, same behavior, whether it was built by hand or by a configurator.
+
+## Framework integrations
+
+Formbaker provides ready-made integrations for common form state libraries.
+
+| Integration     | Package                   | Source                                                                       |
+| --------------- | ------------------------- | ---------------------------------------------------------------------------- |
+| React Hook Form | `@formbaker/integrations` | [`/react-hook-form`](./packages/formbaker-integrations/src/react-hook-form/) |
+| Angular         | `@formbaker/integrations` | [`/angular`](./packages/formbaker-integrations/src/angular/)                 |
+| NestJS          | `@formbaker/integrations` | [`/nest`](./packages/formbaker-integrations/src/nest/)                       |
+
+Each integration folder has its own README with install instructions, API docs, and examples.
 
 ## Plugin system
 
@@ -268,65 +339,35 @@ This means:
 - **Custom plugins** — a `FormbakerPlugin` is just `(field, values) => StandardSchemaV1`.
 - **Serialization works** because the form object has no function references.
 
-## Comparison
-
-Formbaker operates at a different layer than these alternatives. It is _not_ a form state library — it's a form _structure_ engine that generates validation schemas dynamically. You'd typically pair it with React Hook Form or any form state library.
-
-### If you were evaluating from scratch or considering a replacement:
-
-| Alternative                   | Comparison                                                                                                                                                                                                                                                                                        |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| React Hook Form + raw schemas | Formbaker is a layer you could skip by writing schemas manually. But Formbaker generates them dynamically from a declarative config (fields + deps + values) — that dynamic generation is the value prop. If your forms are static or per-page handcrafted, raw RHF + your schema lib is simpler. |
-| TanStack Form                 | More mature, framework-agnostic, schema-first philosophy. No built-in support for conditional field visibility based on values — you'd need to compose. No graph layout. Would require a custom dependency-graph layer similar to Formbaker's.                                                    |
-| React JSON Schema Form (RJSF) | Full renderer + schema in one. Good for JSON-driven forms, but JSON Schema is verbose and not great for conditional logic. Would need a custom widget set for Italian government (Bootstrap Italia) styling. Significantly heavier.                                                               |
-| @conform-to/react             | Progressive, small. Works with any schema library (Zod, ArkType). No dependency graph, no dynamic schema generation — you write the schema once. Lighter but would not replace Formbaker's dynamic schema generation.                                                                             |
-| Final Form / React Final Form | Mature subscription-based form state. No schema generation — validation is function-based. Would still need a schema generation layer.                                                                                                                                                            |
-
-### Quick decision guide
-
-- **"I have a static form with fixed fields."** → Use React Hook Form directly with your schema library.
-- **"I want framework-agnostic form state."** → Use TanStack Form.
-- **"I have a JSON Schema I want to render as a form."** → Use RJSF.
-- **"I have 20+ fields with complex visibility rules that change based on answers."** → Formbaker gives you the dependency graph for free.
-
-## Why not just RHF + conditional logic?
-
-You can absolutely do `watch()` + `shouldRender` in React Hook Form. That works fine for simple cases. Where it breaks down:
-
-- Validation rules for hidden fields still fire unless you manually skip them.
-- Cross-field dependencies (B depends on A, C depends on B, D depends on A and C) become nested conditionals that are hard to trace.
-- There's no way to get a DAG layout of your fields for a visual builder.
-- Dynamic question numbering (1, 1.1, 1.2, 2, …) requires manual bookkeeping.
-
-Formbaker's dependency graph solves these at the model level rather than at the render level.
-
 ## API
 
-| Function                       | Purpose                                                 |
-| ------------------------------ | ------------------------------------------------------- |
-| `registerPlugin(name, plugin)` | Register a validation plugin by name                    |
-| `create(params)`               | Create a new form (requires `pluginName`)               |
-| `addNode(form, field)`         | Add a field                                             |
-| `removeNode(form, id)`         | Remove a field (fails if it has outgoing deps)          |
-| `addSection(form, section)`    | Add a section (id must start with `#`)                  |
-| `removeSection(form, id)`      | Remove a section                                        |
-| `addDependency(form, dep)`     | Add a visibility dependency                             |
-| `removeDependency(form, dep)`  | Remove a dependency                                     |
-| `validate(form, values)`       | Validate data against the form's current visible schema |
-| `getSchema(form, values)`      | Get the Standard Schema V1 for the current form state   |
+All functions are **immutable** — they return a new form object without modifying the original.
 
-| `getSortedNodes(form)` | All nodes sorted by order |
+| Function                       | Purpose                                                                                    |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `registerPlugin(name, plugin)` | Register a validation plugin by name                                                       |
+| `create(params)`               | Create a new form (requires `pluginName`)                                                  |
+| `addNode(form, node)`          | Add a field or section node. Returns a new form.                                           |
+| `removeNode(form, id)`         | Remove a node (fails if it has outgoing deps; cascades to children for sections).          |
+| `addDependency(form, dep)`     | Add a visibility dependency. `dependencyType` supports `"AND"`, `"OR"` (default), `"XOR"`. |
+| `removeDependency(form, dep)`  | Remove a dependency                                                                        |
+| `validate(form, values)`       | Validate data against the form's current visible schema                                    |
+| `getSchema(form, values)`      | Get the Standard Schema V1 for the current form state                                      |
+
+| `getSortedNodes(form)` | All nodes sorted by order (DFS: sections then their children) |
 | `getOrderingMap(form)` | Section-question numbering map |
-| `moveNode(form, id, targetId)` | Reorder a node relative to another |
+| `moveNode(form, id, targetId)` | Reorder a node relative to another (renumbers siblings) |
 | `clearForm(form)` | Remove all fields and dependencies |
 | `shouldInclude(form, node, value)` | Check if a node is visible given current values |
 
 ## Built-in plugins
 
-| Name        | Package              | Import                                                       |
-| ----------- | -------------------- | ------------------------------------------------------------ |
-| `"arktype"` | `@formbaker/plugins` | `import { arktypePlugin } from "@formbaker/plugins/arktype"` |
-| `"zod"`     | `@formbaker/plugins` | `import { zodPlugin } from "@formbaker/plugins/zod"`         |
+| Name        | Package              | Source                                              |
+| ----------- | -------------------- | --------------------------------------------------- |
+| `"arktype"` | `@formbaker/plugins` | [`/arktype`](./packages/formbaker-plugins/arktype/) |
+| `"zod"`     | `@formbaker/plugins` | [`/zod`](./packages/formbaker-plugins/zod/)         |
+
+Each plugin folder has its own README with detailed documentation.
 
 ## Types
 
@@ -335,7 +376,7 @@ All types are in `src/types.ts`. Key types:
 - `Formbaker` — the form object (fields, sections, dependencies, `pluginName`)
 - `FormbakerField` — a field with type, validation, label, etc.
 - `FormbakerSection` — a group of fields
-- `FormbakerDependency` — `{ source, target, condition }` where condition is a schema string
+- `FormbakerDependency` — `{ source, target, condition, dependencyType? }` where condition is a schema string and `dependencyType` is `"AND"` | `"OR"` (default) | `"XOR"`
 - `FormbakerPlugin` — `(field, values) => StandardSchemaV1`
 - `FormbakerPluginName` — `string` (JSON-safe identifier)
 - `FormResult` — `{ success, data, schema }`

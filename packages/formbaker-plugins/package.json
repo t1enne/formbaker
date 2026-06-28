@@ -8,12 +8,12 @@
   "type": "module",
   "exports": {
     "./arktype": {
-      "types": "./dist/arktype.d.ts",
-      "default": "./dist/arktype.js"
+      "types": "./dist/arktype/index.d.ts",
+      "default": "./dist/arktype/index.js"
     },
     "./zod": {
-      "types": "./dist/zod.d.ts",
-      "default": "./dist/zod.js"
+      "types": "./dist/zod/index.d.ts",
+      "default": "./dist/zod/index.js"
     }
   },
   "scripts": {

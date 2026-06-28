@@ -8,16 +8,16 @@
   "type": "module",
   "exports": {
     "./react-hook-form": {
-      "types": "./dist/react-hook-form.d.ts",
-      "default": "./dist/react-hook-form.js"
+      "types": "./dist/react-hook-form/index.d.ts",
+      "default": "./dist/react-hook-form/index.js"
     },
     "./angular": {
-      "types": "./dist/angular.d.ts",
-      "default": "./dist/angular.js"
+      "types": "./dist/angular/index.d.ts",
+      "default": "./dist/angular/index.js"
     },
     "./nest": {
-      "types": "./dist/nest.d.ts",
-      "default": "./dist/nest.js"
+      "types": "./dist/nest/index.d.ts",
+      "default": "./dist/nest/index.js"
     }
   },
   "scripts": {

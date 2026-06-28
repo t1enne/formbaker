@@ -255,8 +255,7 @@ const removeNode = <T extends Formbaker>(form: T, nodeId: string): [T, boolean] 
   return [{ ...form, nodes, dependencies: deps }, true];
 };
 
-const sortByOrder = (a: FormbakerNode, b: FormbakerNode): number =>
-  (a.order ?? 0) - (b.order ?? 0);
+const sortByOrder = (a: FormbakerNode, b: FormbakerNode): number => (a.order ?? 0) - (b.order ?? 0);
 
 const isCyclical = (
   dependencies: Formbaker["dependencies"],
