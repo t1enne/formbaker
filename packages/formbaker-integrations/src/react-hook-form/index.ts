@@ -18,7 +18,7 @@
  * )}
  * ```
  */
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import {
   useForm,
   type UseFormReturn,
@@ -69,17 +69,31 @@ export function useFormbakerForm<Input extends FieldValues = FieldValues, Contex
   // StandardSchemaV1 whose runtime validate accepts the Input shape.
   // Upgrade path: if formbaker adds type-level schema inference, use
   // StandardSchemaV1.InferInput / InferOutput to thread types through.
+
+  // Keep a stable resolver reference so RHF's useForm doesn't re-initialise
+  // on every render. The resolver is a stable async function that builds the
+  // current schema on each validation call using the latest values via the
+  // ref, then delegates to standardSchemaResolver's inner validation logic.
+  // This avoids both RHF re-init and stale schema snapshots.
+  const valuesRef = useRef(values);
+  valuesRef.current = values;
+
   const resolver = useMemo<Resolver<Input, Context, Input>>(() => {
-    return standardSchemaResolver(getSchema(form, values) as StandardSchemaV1<Input, Input>);
-  }, [form, values]);
+    return async (data, context, options) => {
+      const schema = getSchema(form, valuesRef.current) as StandardSchemaV1<Input, Input>;
+      const inner = standardSchemaResolver(schema);
+      return inner(data, context, options);
+    };
+  }, [form]);
 
   const formReturn = useForm<Input, Context, Input>({
     ...opts,
     resolver,
   });
 
-  // Compute visible fields on every render so dependency changes are reflected.
-  // Fields inside hidden sections are also excluded.
+  // Compute visible fields fresh every render so dependency changes are
+  // reflected immediately. This is a cheap iteration over form.nodes — the
+  // expensive work (schema rebuild + RHF re-init) is avoided above.
   const visibleFields = useMemo(() => {
     const isIncluded = createVisibilityChecker(form);
     const visible = new Set<string>();
