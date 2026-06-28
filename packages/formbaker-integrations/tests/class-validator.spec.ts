@@ -8,7 +8,7 @@ import { describe, expect, it } from "vitest";
 import type { FormbakerField } from "formbaker";
 import { create, addNode } from "formbaker";
 import { validate, validateSync } from "class-validator";
-import { formbakerToClassValidator } from "../class-validator";
+import { formbakerToClassValidator } from "../src/class-validator";
 
 describe("class-validator runtime DTO builder", () => {
   it("builds a class that can be instantiated", () => {

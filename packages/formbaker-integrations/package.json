@@ -1,10 +1,12 @@
 {
   "name": "@formbaker/integrations",
   "version": "0.1.0",
-  "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder)",
+  "description": "Framework integrations for Formbaker (react-hook-form, Angular, HTML5, class-validator DTO builder)",
   "keywords": [
     "angular",
+    "class-validator",
     "constraint-validation",
+    "dto",
     "form",
     "formbaker",
     "html5",
@@ -32,6 +34,10 @@
     "./html5": {
       "types": "./dist/html5/index.d.ts",
       "default": "./dist/html5/index.js"
+    },
+    "./class-validator": {
+      "types": "./dist/class-validator/index.d.ts",
+      "default": "./dist/class-validator/index.js"
     }
   },
   "scripts": {
@@ -42,8 +48,10 @@
     "@angular/forms": "^20.3.25",
     "@hookform/resolvers": "^5.4.0",
     "@types/react": "^19.2.17",
+    "class-validator": "^0.15.1",
     "formbaker": "*",
-    "react-hook-form": "^7.80.0"
+    "react-hook-form": "^7.80.0",
+    "reflect-metadata": "^0.2.2"
   },
   "peerDependencies": {
     "@angular/forms": ">=14.0.0",
@@ -51,7 +59,8 @@
     "@standard-schema/spec": ">=1.0.0",
     "formbaker": "*",
     "react": ">=16.8.0",
-    "react-hook-form": ">=7.55.0"
+    "react-hook-form": ">=7.55.0",
+    "class-validator": ">=0.12.0"
   },
   "peerDependenciesMeta": {
     "@angular/forms": {
@@ -64,6 +73,9 @@
       "optional": true
     },
     "@hookform/resolvers": {
+      "optional": true
+    },
+    "class-validator": {
       "optional": true
     }
   }

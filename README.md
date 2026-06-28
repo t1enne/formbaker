@@ -349,12 +349,14 @@ Later, when a user fills out that form, you `create()` from the stored JSON and 
 
 ## Framework integrations
 
-Formbaker provides ready-made integrations for common form state libraries.
+Formbaker provides ready-made integrations for common form state libraries and validation tools.
 
-| Integration     | Package                   | Source                                                                       |
-| --------------- | ------------------------- | ---------------------------------------------------------------------------- |
-| React Hook Form | `@formbaker/integrations` | [`/react-hook-form`](./packages/formbaker-integrations/src/react-hook-form/) |
-| Angular         | `@formbaker/integrations` | [`/angular`](./packages/formbaker-integrations/src/angular/)                 |
+| Integration     | Package                   | Source                                                                           |
+| --------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| React Hook Form | `@formbaker/integrations` | [`/react-hook-form`](./packages/formbaker-integrations/src/react-hook-form/)     |
+| Angular         | `@formbaker/integrations` | [`/angular`](./packages/formbaker-integrations/src/angular/)                     |
+| HTML5 (native)  | `@formbaker/integrations` | [`/html5`](./packages/formbaker-integrations/src/html5/)                         |
+| class-validator | `@formbaker/integrations` | [`/class-validator`](./packages/formbaker-integrations/src/class-validator/)     |
 
 Each integration folder has its own README with install instructions, API docs, and examples.
 
@@ -397,11 +399,10 @@ All functions are **immutable** — they return a new form object without modify
 
 ## Built-in plugins
 
-| Name                | Package              | Source                                                              |
-| ------------------- | -------------------- | ------------------------------------------------------------------- |
-| `"arktype"`         | `@formbaker/plugins` | [`/arktype`](./packages/formbaker-plugins/arktype/)                 |
-| `"zod"`             | `@formbaker/plugins` | [`/zod`](./packages/formbaker-plugins/zod/)                         |
-| `"class-validator"` | `@formbaker/plugins` | [`/class-validator`](./packages/formbaker-plugins/class-validator/) |
+| Name        | Package              | Source                                              |
+| ----------- | -------------------- | --------------------------------------------------- |
+| `"arktype"` | `@formbaker/plugins` | [`/arktype`](./packages/formbaker-plugins/arktype/) |
+| `"zod"`     | `@formbaker/plugins` | [`/zod`](./packages/formbaker-plugins/zod/)         |
 
 Each plugin folder has its own README with detailed documentation.
 

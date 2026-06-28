@@ -1,6 +1,8 @@
 # @formbaker/plugins
 
-Validation plugins for Formbaker. Each plugin translates Formbaker field definitions into a validation library's schema DSL and provides a `StandardSchemaV1`-compliant validator.
+Validation plugins for Formbaker. Each plugin implements `FormbakerPlugin` (field, mergeFields, evaluateCondition) and plugs into the `registerPlugin()` / `create({pluginName})` pipeline.
+
+**Plugins vs integrations:** if it goes through `registerPlugin`, it's a plugin. If it consumes a Formbaker form for any other purpose (framework wiring, DTO builders, code-gen), it's an integration — see `@formbaker/integrations`.
 
 ## Available plugins
 
