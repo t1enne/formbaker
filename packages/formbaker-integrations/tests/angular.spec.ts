@@ -1,8 +1,9 @@
 /**
  * Tests for the Angular FormBuilder integration.
  */
-import { describe, expect, it } from "vitest";
-import { create, addNode } from "formbaker";
+import { describe, expect, it, beforeAll } from "vitest";
+import { create, addNode, addDependency, registerPlugin } from "formbaker";
+import type { FormbakerPlugin } from "formbaker";
 import type { ValidatorFn } from "@angular/forms";
 import {
   formbakerToFormGroup,
@@ -34,6 +35,22 @@ const fakeValidators: FormbakerValidators = {
 };
 
 describe("angular FormBuilder integration", () => {
+  // Minimal test plugin for visibility tests — only needed for evaluateCondition.
+  const testPlugin: FormbakerPlugin = {
+    field: (_f) => ({ "~standard": { version: 1, vendor: "test", validate: (v: unknown) => ({ value: v }) } }),
+    mergeFields: (_fs) => ({ "~standard": { version: 1, vendor: "test", validate: (v: unknown) => {
+      if (v === null || typeof v !== "object") return { issues: [{ message: "not object" }] };
+      return { value: v };
+    } } }),
+    evaluateCondition: (condition, value) => {
+      if (condition === "true") return value != null && value !== false;
+      return true;
+    },
+  };
+
+  beforeAll(() => {
+    registerPlugin("test", testPlugin);
+  });
   it("produces one control per field with correct default values", () => {
     let form = create({ pluginName: "zod" });
     form = addNode(form, { id: "name", type: "field", fieldType: "text" });
@@ -128,6 +145,90 @@ describe("angular FormBuilder integration", () => {
     expect(
       formbakerToFormGroup(create({ pluginName: "zod" }), fakeFb, fakeValidators).controls,
     ).toEqual({});
+  });
+
+  describe("visibility with opts.values", () => {
+    it("formbakerToFormGroup excludes fields hidden by a dependency", () => {
+      let form = create({ pluginName: "test" });
+      form = addNode(form, { id: "trigger", type: "field", fieldType: "checkbox" });
+      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
+      form = addDependency(form, {
+        source: "trigger", target: "target", condition: "true",
+      });
+
+      const hidden = formbakerToFormGroup(form, fakeFb, fakeValidators, {
+        values: { trigger: false },
+      });
+      expect(Object.keys(hidden.controls)).toEqual(["trigger"]);
+
+      const visible = formbakerToFormGroup(form, fakeFb, fakeValidators, {
+        values: { trigger: true },
+      });
+      expect(Object.keys(visible.controls)).toEqual(["trigger", "target"]);
+    });
+
+    it("rebuildFormGroup removes hidden fields when values are provided", () => {
+      let form = create({ pluginName: "test" });
+      form = addNode(form, { id: "trigger", type: "field", fieldType: "checkbox" });
+      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
+      form = addDependency(form, {
+        source: "trigger", target: "target", condition: "true",
+      });
+
+      const ctrls: Record<string, { value: unknown }> = {
+        trigger: fakeFb.control(false),
+        target: fakeFb.control("hello"),
+      };
+      let removed = "";
+      const group: FormGroupLike = {
+        controls: ctrls,
+        addControl: () => {},
+        removeControl(name) {
+          removed = name;
+          delete ctrls[name];
+        },
+        get(name) {
+          return ctrls[name] ?? null;
+        },
+      };
+
+      rebuildFormGroup(form, group, fakeFb, fakeValidators, {
+        values: { trigger: false },
+      });
+      expect(removed).toBe("target");
+      expect(Object.keys(group.controls)).toEqual(["trigger"]);
+    });
+
+    it("rebuildFormGroup adds newly-visible fields when values change", () => {
+      let form = create({ pluginName: "test" });
+      form = addNode(form, { id: "trigger", type: "field", fieldType: "checkbox" });
+      form = addNode(form, { id: "target", type: "field", fieldType: "text" });
+      form = addDependency(form, {
+        source: "trigger", target: "target", condition: "true",
+      });
+
+      const ctrls: Record<string, { value: unknown }> = {
+        trigger: fakeFb.control(true),
+      };
+      let added = "";
+      const group: FormGroupLike = {
+        controls: ctrls,
+        addControl(name, ctrl) {
+          added = name;
+          ctrls[name] = ctrl;
+        },
+        removeControl: () => {},
+        get(name) {
+          return ctrls[name] ?? null;
+        },
+      };
+
+      rebuildFormGroup(form, group, fakeFb, fakeValidators, {
+        values: { trigger: true },
+      });
+      expect(added).toBe("target");
+      expect(Object.keys(group.controls)).toEqual(["trigger", "target"]);
+    });
   });
 
   it("rebuildFormGroup adds new controls and removes deleted ones", () => {

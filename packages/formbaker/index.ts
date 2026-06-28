@@ -11,6 +11,8 @@ export {
   getOrderingMap,
   moveNode,
   registerPlugin,
+  isVisible,
+  createVisibilityChecker,
 } from "./src/engine";
 
 export type {

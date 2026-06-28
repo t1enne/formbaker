@@ -10,7 +10,7 @@ import {
   FormbakerSection,
   FormbakerPlugin,
 } from "./types";
-import { isEqualDepencency, invariant, omit, shouldInclude, isField, isSection } from "./utils";
+import { isEqualDependency, invariant, omit, shouldInclude, isField, isSection } from "./utils";
 
 const pluginRegistry = new Map<string, FormbakerPlugin>();
 
@@ -30,6 +30,37 @@ const resolvePlugin = (name: string): FormbakerPlugin => {
   const plugin = pluginRegistry.get(name);
   invariant(plugin, `Unknown plugin: "${name}"`);
   return plugin;
+};
+
+/**
+ * Create a visibility-check closure that captures the form and resolved plugin.
+ *
+ * The returned function checks whether a node is currently visible given the
+ * form values, evaluating dependency conditions through the plugin's
+ * evaluateCondition callback and walking the ancestor chain.
+ *
+ * Callers that need to check many fields (e.g. integration hooks) should call
+ * this once and reuse the returned function to avoid repeated plugin resolution.
+ *
+ * Throws if the node doesn't exist.
+ *
+ * @example
+ * ```ts
+ * const isIncluded = createVisibilityChecker(form);
+ * if (isIncluded("license_plate", { has_vehicle: true })) {
+ *   // render the field
+ * }
+ * ```
+ */
+const createVisibilityChecker = (
+  form: Formbaker,
+): ((nodeId: string, values: Record<string, unknown>) => boolean) => {
+  const plugin = resolvePlugin(form.pluginName);
+  return (nodeId, values) => {
+    const node = form.nodes[nodeId];
+    invariant(node, `Node "${nodeId}" not found`);
+    return shouldInclude(form, node, values, plugin.evaluateCondition);
+  };
 };
 
 const create = <S extends PlainObject, T extends Formbaker<S>>(params: Partial<T> = {}): T => {
@@ -171,10 +202,10 @@ const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): 
 const removeDependency = <T extends Formbaker>(form: T, dependency: FormbakerDependency): T => {
   const { target, source } = dependency;
   const fwdList = (form.dependencies.forward[source] ?? []).filter(
-    (d) => !isEqualDepencency(dependency, d),
+    (d) => !isEqualDependency(dependency, d),
   );
   const bwdList = (form.dependencies.backward[target] ?? []).filter(
-    (d) => !isEqualDepencency(dependency, d),
+    (d) => !isEqualDependency(dependency, d),
   );
 
   return {
@@ -228,11 +259,11 @@ const removeDependencyEdge = (
   return {
     forward: {
       ...deps.forward,
-      [source]: (deps.forward[source] ?? []).filter((d) => !isEqualDepencency(dependency, d)),
+      [source]: (deps.forward[source] ?? []).filter((d) => !isEqualDependency(dependency, d)),
     },
     backward: {
       ...deps.backward,
-      [target]: (deps.backward[target] ?? []).filter((d) => !isEqualDepencency(dependency, d)),
+      [target]: (deps.backward[target] ?? []).filter((d) => !isEqualDependency(dependency, d)),
     },
   };
 };
@@ -441,6 +472,28 @@ const moveNode = <T extends Formbaker>(form: T, nodeId: string, targetNodeId: st
   };
 };
 
+/**
+ * Check whether a node is currently visible given the current form values.
+ *
+ * Convenience wrapper around createVisibilityChecker — resolves the plugin
+ * on every call. For bulk visibility checks (e.g. integration hooks), use
+ * createVisibilityChecker to resolve once.
+ *
+ * Evaluates the node's own backward dependencies (AND/OR/XOR combos) and
+ * walks the ancestor chain (parentId) so a field inside a hidden section
+ * also returns false. Throws if the node doesn't exist or the form's
+ * plugin isn't registered.
+ *
+ * @example
+ * ```ts
+ * if (isVisible(form, "license_plate", { has_vehicle: true })) {
+ *   // render the field
+ * }
+ * ```
+ */
+const isVisible = (form: Formbaker, nodeId: string, values: Record<string, unknown>): boolean =>
+  createVisibilityChecker(form)(nodeId, values);
+
 export {
   create,
   addNode,
@@ -453,4 +506,6 @@ export {
   getSortedNodes,
   getOrderingMap,
   moveNode,
+  isVisible,
+  createVisibilityChecker,
 };

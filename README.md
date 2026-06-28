@@ -29,13 +29,23 @@ Formbaker isn't a form state library — it's a form _structure_ engine. You use
 
 ### React Hook Form
 
-The `useFormbakerForm` hook returns a standard `UseFormReturn` with a resolver that dynamically rebuilds the validation schema every render. As fields are shown or hidden by dependencies, the schema updates — no manual `watch()` chains, no conditional validation logic in your components.
+The `useFormbakerForm` hook returns a standard `UseFormReturn` with a resolver that dynamically rebuilds the validation schema every render. It also returns `isInSchema(id)` and `visibleFields` so you can hide field markup when a dependency excludes it:
+
+```tsx
+const { register, isInSchema } = useFormbakerForm(form, watch());
+
+{isInSchema("license_plate") && (
+  <input {...register("license_plate")} />
+)}
+```
+
+The resolver handles which fields validate; `isInSchema` lets you decide what renders.
 
 → See the [React Hook Form integration](./packages/formbaker-integrations/src/react-hook-form/) for a full example.
 
 ### Angular Reactive Forms
 
-`rebuildFormGroup` syncs an Angular `FormGroup` to match the form's current structure. When a dependency hides a section, all its child controls are removed from the group so they don't participate in validation. When it reappears, controls are re-added with their previous values preserved.
+`rebuildFormGroup` syncs an Angular `FormGroup` to match the form's current visible structure. When a dependency hides a field, its control is removed from the group so it doesn't participate in validation. When it reappears, the control is re-added with its previous value preserved. Pass `{ values: formGroup.value }` to enable visibility evaluation.
 
 → See the [Angular integration](./packages/formbaker-integrations/src/angular/) for a full example.
 
@@ -358,7 +368,7 @@ All functions are **immutable** — they return a new form object without modify
 | `getOrderingMap(form)` | Section-question numbering map |
 | `moveNode(form, id, targetId)` | Reorder a node relative to another (renumbers siblings) |
 | `clearForm(form)` | Remove all fields and dependencies |
-| `shouldInclude(form, node, value)` | Check if a node is visible given current values |
+| `isVisible(form, nodeId, values)`  | Check if a node is visible given current values (resolves plugin internally) |
 
 ## Built-in plugins
 

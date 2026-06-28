@@ -5,6 +5,9 @@
  * `Validators` from `@angular/forms`. Handles required, min, and max
  * constraints across all Formbaker field types.
  *
+ * When values are provided via opts, `rebuildFormGroup` evaluates dependency
+ * visibility so hidden fields are excluded from the group.
+ *
  * @example
  * ```ts
  * import { formbakerToFormGroup } from "@formbaker/integrations/angular";
@@ -15,15 +18,26 @@
  * const group = formbakerToFormGroup(form, fb, Validators);
  * ```
  */
-import type { Formbaker, FormbakerField, FormbakerValidation } from "formbaker";
+import type {
+  Formbaker,
+  FormbakerField,
+  FormbakerNode,
+  FormbakerValidation,
+} from "formbaker";
+import { createVisibilityChecker } from "formbaker";
 import type { ValidatorFn } from "@angular/forms";
+
+const isField = (n: FormbakerNode): n is FormbakerField => n.type === "field";
 
 // --- Interfaces for the Angular types we actually call ---
 // These are compatible subsets of the real @angular/forms classes,
 // so a real FormBuilder / FormGroup satisfies them naturally.
 
 export interface FormBuilderLike {
-  control(value: unknown, validators?: ValidatorFn | ValidatorFn[]): { value: unknown };
+  control(
+    value: unknown,
+    validators?: ValidatorFn | ValidatorFn[],
+  ): { value: unknown };
   group(controls: Record<string, { value: unknown }>): {
     controls: Record<string, { value: unknown }>;
   };
@@ -54,7 +68,7 @@ export interface FormbakerValidators {
 // --- Helper to get field nodes from the unified nodes map ---
 
 const getFields = (form: Formbaker): FormbakerField[] => {
-  return Object.values(form.nodes).filter((n): n is FormbakerField => n.type === "field");
+  return Object.values(form.nodes).filter(isField);
 };
 
 // --- Validator builders ---
@@ -70,7 +84,9 @@ const buildValidators = (
   const { required, min, max } = validation;
 
   if (required) {
-    validators.push(V.required(required === true ? undefined : required.message));
+    validators.push(
+      V.required(required === true ? undefined : required.message),
+    );
   }
 
   if (min !== undefined) {
@@ -97,17 +113,39 @@ const buildValidators = (
 const getDefaultValue = (field: FormbakerField): unknown => {
   if (field.fieldType === "text" || field.fieldType === "textarea") return "";
   if (field.fieldType === "number") return null;
-  if (field.fieldType === "checkbox" || field.fieldType === "radio") return false;
+  if (field.fieldType === "checkbox" || field.fieldType === "radio")
+    return false;
   if (field.fieldType === "select") return null;
   if (field.fieldType === "file") return null;
   return "";
 };
 
 /**
+ * Return the set of field IDs that are visible given the current values.
+ * When values is empty or undefined, all fields are considered visible.
+ */
+const getVisibleFieldIds = (
+  form: Formbaker,
+  values: Record<string, unknown> | undefined,
+): Set<string> => {
+  const fields = getFields(form);
+  if (!values || Object.keys(values).length === 0) {
+    return new Set(fields.map((f) => f.id));
+  }
+  const isIncluded = createVisibilityChecker(form);
+  const visibleFieldIds = fields
+    .filter((f) => isIncluded(f.id, values))
+    .map((f) => f.id);
+
+  return new Set(visibleFieldIds);
+};
+
+/**
  * Convert a Formbaker form into an Angular `FormGroup`.
  *
  * Dependency visibility is NOT evaluated here (it requires the plugin
- * registry at runtime). Use `rebuildFormGroup` for live visibility updates.
+ * registry at runtime). Use `rebuildFormGroup` for live visibility updates
+ * with values.
  *
  * @param form        - A Formbaker form definition.
  * @param fb          - An Angular `FormBuilder` instance.
@@ -121,11 +159,12 @@ export const formbakerToFormGroup = (
   validators: FormbakerValidators,
   opts: FormbakerFormGroupOptions = {},
 ) => {
-  void opts; // reserved for future visibility support
+  const visibleIds = getVisibleFieldIds(form, opts.values);
 
   const controls: Record<string, { value: unknown }> = {};
 
   for (const field of getFields(form)) {
+    if (!visibleIds.has(field.id)) continue;
     const defaultValue = getDefaultValue(field);
     const v = buildValidators(field.validation, field.fieldType, validators);
     controls[field.id] = fb.control(defaultValue, v);
@@ -158,20 +197,21 @@ export const rebuildFormGroup = (
   group: FormGroupLike,
   fb: FormBuilderLike,
   validators: FormbakerValidators,
-  _opts: FormbakerFormGroupOptions = {},
+  opts: FormbakerFormGroupOptions = {},
 ): void => {
-  const fieldIds = new Set(getFields(form).map((f) => f.id));
+  const visibleIds = getVisibleFieldIds(form, opts.values);
   const current = new Set(Object.keys(group.controls));
 
-  // Remove controls that are no longer in the form
+  // Remove controls that are no longer in the visible schema
   for (const name of current) {
-    if (!fieldIds.has(name)) {
+    if (!visibleIds.has(name)) {
       group.removeControl(name);
     }
   }
 
-  // Add or update controls for fields in the form
+  // Add controls for newly-visible fields
   for (const field of getFields(form)) {
+    if (!visibleIds.has(field.id)) continue;
     if (group.get(field.id)) continue; // already present — skip to preserve value
 
     const defaultValue = getDefaultValue(field);

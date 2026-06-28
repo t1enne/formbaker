@@ -96,7 +96,7 @@ const checkNodeDeps = (
   return false;
 };
 
-const isEqualDepencency = (a: FormbakerDependency, b: FormbakerDependency) => {
+const isEqualDependency = (a: FormbakerDependency, b: FormbakerDependency) => {
   if (a.source !== b.source) {
     return false;
   }
@@ -132,4 +132,4 @@ const omit = <T extends Record<string, unknown>, K extends string>(
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);
 
-export { shouldInclude, isEqualDepencency, invariant, omit, isNumber };
+export { shouldInclude, isEqualDependency, invariant, omit, isNumber };
