@@ -128,8 +128,9 @@ export const formbakerToClassValidator = (
   const { className = "FormbakerDto" } = opts;
 
   // Dynamically create a named class so error messages have clear type names.
-  const DtoClass: new () => Record<string, unknown> =
-    { [className]: class {} }[className];
+  const DtoClass = class {
+    static { Object.defineProperty(this, 'name', { value: className }); }
+  } as new () => Record<string, unknown>;
 
   for (const field of getFields(form)) {
     for (const dec of buildDecorators(field)) {
