@@ -25,7 +25,7 @@
     "prepublishOnly": "npm run build"
   },
   "devDependencies": {
-    "@angular/forms": "^22.0.3",
+    "@angular/forms": "^20.3.25",
     "@hookform/resolvers": "^5.4.0",
     "@types/react": "^19.2.17",
     "formbaker": "*",
