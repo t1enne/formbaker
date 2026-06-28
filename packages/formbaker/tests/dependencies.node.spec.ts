@@ -137,18 +137,33 @@ describe("formbaker dependencies", () => {
       let f = create({ pluginName: "test" });
       f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
       f = addNode(f, { id: "b", type: "field", fieldType: "checkbox" });
-      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
-      f = addDependency(f, { source: "a", target: "target", condition: "true", dependencyType: "AND" });
-      f = addDependency(f, { source: "b", target: "target", condition: "true", dependencyType: "AND" });
+      f = addNode(f, {
+        id: "target",
+        type: "field",
+        fieldType: "text",
+        validation: { required: true },
+      });
+      f = addDependency(f, {
+        source: "a",
+        target: "target",
+        condition: "true",
+        dependencyType: "AND",
+      });
+      f = addDependency(f, {
+        source: "b",
+        target: "target",
+        condition: "true",
+        dependencyType: "AND",
+      });
       return f;
     })();
 
     const tests = [
-      [{}, true],                                    // empty values → include (no values to evaluate)
-      [{ a: true, b: true }, false],                 // AND passes, target included but required fails
-      [{ a: true, b: true, target: "ok" }, true],    // AND passes, target validates
-      [{ a: true, b: false }, true],                 // AND fails (b falsy) → target excluded
-      [{ a: false, b: false }, true],                // AND fails → target excluded
+      [{}, true], // empty values → include (no values to evaluate)
+      [{ a: true, b: true }, false], // AND passes, target included but required fails
+      [{ a: true, b: true, target: "ok" }, true], // AND passes, target validates
+      [{ a: true, b: false }, true], // AND fails (b falsy) → target excluded
+      [{ a: false, b: false }, true], // AND fails → target excluded
     ] as const;
 
     tests.forEach(([input, expected]) => {
@@ -163,18 +178,33 @@ describe("formbaker dependencies", () => {
       let f = create({ pluginName: "test" });
       f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
       f = addNode(f, { id: "b", type: "field", fieldType: "checkbox" });
-      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
-      f = addDependency(f, { source: "a", target: "target", condition: "true", dependencyType: "XOR" });
-      f = addDependency(f, { source: "b", target: "target", condition: "true", dependencyType: "XOR" });
+      f = addNode(f, {
+        id: "target",
+        type: "field",
+        fieldType: "text",
+        validation: { required: true },
+      });
+      f = addDependency(f, {
+        source: "a",
+        target: "target",
+        condition: "true",
+        dependencyType: "XOR",
+      });
+      f = addDependency(f, {
+        source: "b",
+        target: "target",
+        condition: "true",
+        dependencyType: "XOR",
+      });
       return f;
     })();
 
     const tests = [
-      [{}, true],                                     // empty values → include
-      [{ a: true, b: false, target: "ok" }, true],    // exactly one (a) → included, target validates
-      [{ a: false, b: true, target: "ok" }, true],    // exactly one (b) → included, target validates
-      [{ a: true, b: true }, true],                   // both pass → excluded (not exactly one)
-      [{ a: false, b: false }, true],                 // neither passes → excluded
+      [{}, true], // empty values → include
+      [{ a: true, b: false, target: "ok" }, true], // exactly one (a) → included, target validates
+      [{ a: false, b: true, target: "ok" }, true], // exactly one (b) → included, target validates
+      [{ a: true, b: true }, true], // both pass → excluded (not exactly one)
+      [{ a: false, b: false }, true], // neither passes → excluded
     ] as const;
 
     tests.forEach(([input, expected]) => {
@@ -187,25 +217,57 @@ describe("formbaker dependencies", () => {
   it("should handle mixed AND + OR groups — groups OR'd together", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
-      f = addNode(f, { id: "has_express", type: "field", fieldType: "checkbox" });
+      f = addNode(f, {
+        id: "has_express",
+        type: "field",
+        fieldType: "checkbox",
+      });
       f = addNode(f, { id: "has_phone", type: "field", fieldType: "checkbox" });
       f = addNode(f, { id: "is_gift", type: "field", fieldType: "checkbox" });
-      f = addNode(f, { id: "delivery_prefs", type: "field", fieldType: "text", validation: { required: true } });
+      f = addNode(f, {
+        id: "delivery_prefs",
+        type: "field",
+        fieldType: "text",
+        validation: { required: true },
+      });
       // AND group: has_express AND has_phone must both be true
-      f = addDependency(f, { source: "has_express", target: "delivery_prefs", condition: "true", dependencyType: "AND" });
-      f = addDependency(f, { source: "has_phone", target: "delivery_prefs", condition: "true", dependencyType: "AND" });
+      f = addDependency(f, {
+        source: "has_express",
+        target: "delivery_prefs",
+        condition: "true",
+        dependencyType: "AND",
+      });
+      f = addDependency(f, {
+        source: "has_phone",
+        target: "delivery_prefs",
+        condition: "true",
+        dependencyType: "AND",
+      });
       // OR group: is_gift alone is enough
-      f = addDependency(f, { source: "is_gift", target: "delivery_prefs", condition: "true", dependencyType: "OR" });
+      f = addDependency(f, {
+        source: "is_gift",
+        target: "delivery_prefs",
+        condition: "true",
+        dependencyType: "OR",
+      });
       return f;
     })();
 
     const tests = [
-      [{}, true],                                                                         // empty values → include
-      [{ is_gift: true, delivery_prefs: "no" }, true],                                    // OR group passes alone
-      [{ has_express: true, has_phone: true, delivery_prefs: "yes" }, true],              // AND group passes alone
-      [{ has_express: true }, true],                                                      // AND fails, OR fails → exclude
-      [{ has_express: true, is_gift: true, delivery_prefs: "ok" }, true],                 // AND fails (no phone), OR passes → include
-      [{ has_express: true, has_phone: true, is_gift: true, delivery_prefs: "y" }, true], // both pass → include
+      [{}, true], // empty values → include
+      [{ is_gift: true, delivery_prefs: "no" }, true], // OR group passes alone
+      [{ has_express: true, has_phone: true, delivery_prefs: "yes" }, true], // AND group passes alone
+      [{ has_express: true }, true], // AND fails, OR fails → exclude
+      [{ has_express: true, is_gift: true, delivery_prefs: "ok" }, true], // AND fails (no phone), OR passes → include
+      [
+        {
+          has_express: true,
+          has_phone: true,
+          is_gift: true,
+          delivery_prefs: "y",
+        },
+        true,
+      ], // both pass → include
     ] as const;
 
     tests.forEach(([input, expected]) => {
@@ -219,15 +281,24 @@ describe("formbaker dependencies", () => {
     const form = (() => {
       let f = create({ pluginName: "test" });
       f = addNode(f, { id: "a", type: "field", fieldType: "checkbox" });
-      f = addNode(f, { id: "target", type: "field", fieldType: "text", validation: { required: true } });
+      f = addNode(f, {
+        id: "target",
+        type: "field",
+        fieldType: "text",
+        validation: { required: true },
+      });
       // No dependencyType → defaults to OR
-      f = addDependency(f, { source: "a", target: "target", condition: "true" });
+      f = addDependency(f, {
+        source: "a",
+        target: "target",
+        condition: "true",
+      });
       return f;
     })();
 
     const tests = [
-      [{ a: true }, false],  // a passes, target included but required
-      [{ a: false }, true],  // a fails, target excluded
+      [{ a: true }, false], // a passes, target included but required
+      [{ a: false }, true], // a fails, target excluded
     ] as const;
 
     tests.forEach(([input, expected]) => {

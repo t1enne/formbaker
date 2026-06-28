@@ -32,10 +32,10 @@ describe("getOrderingMap", () => {
   it("numbers questions with sections: 1, 1.1, 1.2, 2, 2.1", () => {
     let form = create({ pluginName: "test" });
     form = addNode(form, { id: "#s1", type: "section", label: "Topic A" });
-    form = addNode(form, { id: "q1", type: "field", fieldType: "text" }, { parentId: "#s1" });
-    form = addNode(form, { id: "q2", type: "field", fieldType: "text" }, { parentId: "#s1" });
+    form = addNode(form, { id: "q1", type: "field", fieldType: "text", parentId: "#s1" });
+    form = addNode(form, { id: "q2", type: "field", fieldType: "text", parentId: "#s1" });
     form = addNode(form, { id: "#s2", type: "section", label: "Topic B" });
-    form = addNode(form, { id: "q3", type: "field", fieldType: "text" }, { parentId: "#s2" });
+    form = addNode(form, { id: "q3", type: "field", fieldType: "text", parentId: "#s2" });
 
     const lo = getOrderingMap(form);
     expect(lo.get("#s1")).toBe("1");
@@ -48,11 +48,11 @@ describe("getOrderingMap", () => {
   it("numbers questions with 3+ sections correctly", () => {
     let form = create({ pluginName: "test" });
     form = addNode(form, { id: "#s1", type: "section" });
-    form = addNode(form, { id: "q1", type: "field", fieldType: "text" }, { parentId: "#s1" });
+    form = addNode(form, { id: "q1", type: "field", fieldType: "text", parentId: "#s1" });
     form = addNode(form, { id: "#s2", type: "section" });
-    form = addNode(form, { id: "q2", type: "field", fieldType: "text" }, { parentId: "#s2" });
+    form = addNode(form, { id: "q2", type: "field", fieldType: "text", parentId: "#s2" });
     form = addNode(form, { id: "#s3", type: "section" });
-    form = addNode(form, { id: "q3", type: "field", fieldType: "text" }, { parentId: "#s3" });
+    form = addNode(form, { id: "q3", type: "field", fieldType: "text", parentId: "#s3" });
 
     const lo = getOrderingMap(form);
     expect(lo.get("#s1")).toBe("1");

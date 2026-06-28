@@ -106,11 +106,10 @@ const sectionNode = (
 const addNode = <T extends Formbaker>(
   form: T,
   node: Partial<FormbakerNode> & Pick<FormbakerNode, "id" | "type">,
-  opts?: { parentId?: string },
 ): T => {
   invariant(!form.nodes[node.id], `Duplicate node id ${node.id}`);
 
-  const parentId = opts?.parentId ?? node.parentId;
+  const parentId = node.parentId;
   if (node.type === "section") {
     invariant(node.id[0] === "#", "Section id must start with #");
   }
