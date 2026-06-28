@@ -1,7 +1,7 @@
 {
   "name": "@formbaker/plugins",
   "version": "0.1.0",
-  "description": "Validation plugins for Formbaker (arktype, zod)",
+  "description": "Validation plugins for Formbaker (arktype, zod, class-validator)",
   "files": [
     "dist"
   ],
@@ -14,6 +14,10 @@
     "./zod": {
       "types": "./dist/zod/index.d.ts",
       "default": "./dist/zod/index.js"
+    },
+    "./class-validator": {
+      "types": "./dist/class-validator/index.d.ts",
+      "default": "./dist/class-validator/index.js"
     }
   },
   "scripts": {
@@ -22,16 +26,22 @@
   },
   "devDependencies": {
     "arktype": "^2.2.1",
+    "class-validator": "^0.15.1",
     "formbaker": "*",
+    "reflect-metadata": "^0.2.2",
     "zod": "^4.4.3"
   },
   "peerDependencies": {
     "arktype": "^2.2.0",
+    "class-validator": ">=0.12.0",
     "formbaker": "*",
     "zod": "^4.4.0"
   },
   "peerDependenciesMeta": {
     "arktype": {
+      "optional": true
+    },
+    "class-validator": {
       "optional": true
     },
     "zod": {

@@ -1,7 +1,7 @@
 {
   "name": "@formbaker/integrations",
   "version": "0.1.0",
-  "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder, Nest class-validator)",
+  "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder)",
   "files": [
     "dist"
   ],
@@ -14,10 +14,6 @@
     "./angular": {
       "types": "./dist/angular/index.d.ts",
       "default": "./dist/angular/index.js"
-    },
-    "./nest": {
-      "types": "./dist/nest/index.d.ts",
-      "default": "./dist/nest/index.js"
     }
   },
   "scripts": {
@@ -35,7 +31,6 @@
     "@angular/forms": ">=14.0.0",
     "@hookform/resolvers": ">=2.0.0",
     "@standard-schema/spec": ">=1.0.0",
-    "class-validator": ">=0.12.0",
     "formbaker": "*",
     "react": ">=16.8.0",
     "react-hook-form": ">=7.55.0"
@@ -51,9 +46,6 @@
       "optional": true
     },
     "@hookform/resolvers": {
-      "optional": true
-    },
-    "class-validator": {
       "optional": true
     }
   }

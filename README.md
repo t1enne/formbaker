@@ -34,9 +34,9 @@ The `useFormbakerForm` hook returns a standard `UseFormReturn` with a resolver t
 ```tsx
 const { register, isInSchema } = useFormbakerForm(form, watch());
 
-{isInSchema("license_plate") && (
-  <input {...register("license_plate")} />
-)}
+{
+  isInSchema("license_plate") && <input {...register("license_plate")} />;
+}
 ```
 
 The resolver handles which fields validate; `isInSchema` lets you decide what renders.
@@ -48,12 +48,6 @@ The resolver handles which fields validate; `isInSchema` lets you decide what re
 `rebuildFormGroup` syncs an Angular `FormGroup` to match the form's current visible structure. When a dependency hides a field, its control is removed from the group so it doesn't participate in validation. When it reappears, the control is re-added with its previous value preserved. Pass `{ values: formGroup.value }` to enable visibility evaluation.
 
 → See the [Angular integration](./packages/formbaker-integrations/src/angular/) for a full example.
-
-### NestJS / class-validator
-
-`formbakerToClassValidator` generates TypeScript source code for a DTO class decorated with class-validator decorators. Handy when you define the form on the frontend and need a matching backend DTO.
-
-→ See the [NestJS integration](./packages/formbaker-integrations/src/nest/) for a full example.
 
 ### When it pulls its weight
 
@@ -111,10 +105,14 @@ const form = create({
   },
   dependencies: {
     forward: {
-      has_vehicle: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
+      has_vehicle: [
+        { source: "has_vehicle", target: "license_plate", condition: "true" },
+      ],
     },
     backward: {
-      license_plate: [{ source: "has_vehicle", target: "license_plate", condition: "true" }],
+      license_plate: [
+        { source: "has_vehicle", target: "license_plate", condition: "true" },
+      ],
     },
   },
 });
@@ -257,7 +255,41 @@ form = addDependency(form, {
 form = addDependency(form, { source: "a", target: "c", condition: "true" }); // dependencyType defaults to "OR"
 ```
 
-Groups of the same `dependencyType` are evaluated internally by their combinator, then **OR'd** together across groups. So you can express "(A AND B) OR C" by assigning `AND` to the A→target and B→target deps, and `OR` (default) to the C→target dep.
+
+
+#### How dependency types aggregate
+
+Dependencies with the **same `dependencyType`** are grouped and evaluated by that group's logic gate internally. Then the results of each gate are **OR'd together** — if any group says the target should be visible, it's visible.
+
+This means one target field can have dependencies with different types. The evaluation order is:
+
+1. Collect all deps targeting `c`.
+2. Partition them by `dependencyType` into three buckets: `AND`, `OR`, `XOR`.
+3. Evaluate each bucket as a single boolean: all must pass for `AND`, any passes for `OR`, exactly one passes for `XOR`.
+4. If **any** bucket returns `true`, `c` is visible.
+
+| Expression | Type A→c | Type B→c | Outcome |
+|------------|----------|----------|---------|
+| A **OR** B | `OR` | `OR` | default — either makes c visible |
+| A **AND** B | `AND` | `AND` | both must be `true` for c to show |
+| A **XOR** B | `XOR` | `XOR` | exactly one must be `true` |
+| **(A AND B) OR C** | `AND` (A→c) | `AND` (B→c) | the AND group fails, the OR group passes → c shows |
+
+In the last row, C's `OR` dependency is on a third field. The AND bucket returns `false` (A is false or B is false), but the OR bucket returns `true` (C is true), so `c` is visible. This is how you compose different logical operators on the same target.
+
+##### What this approach handles well
+
+Simple dependency trees that mirror how a form configurator UI works. An admin toggles a checkbox or picks a condition from a dropdown — each action adds one dep to the database. Common patterns like "show when A AND B" or "show when any of these reasons is checked" are one bucket assignment away, and mixing types for `(A AND B) OR C` is natural.
+
+No expression parsing, no AST, no nesting — every dep is just `{ source, target, condition, dependencyType }`. JSON-serializable in one pass.
+
+##### What it can't do
+
+- **Two independent AND groups targeting the same field** — `(A AND B) OR (C AND D)` is impossible because all AND-typed deps land in the same bucket. You'd need two AND buckets, which means first-class groups.
+- **NOT gate** — there's no way to say "show when A is NOT checked." The condition DSL handles some negation (`"false"` shows when the source is falsy), but that's per-dep, not a gate.
+- **Nested expressions** — anything like `A AND (B OR C)` requires a dependency group concept the current model doesn't have.
+
+For most form configurators these gaps are fine — real-world forms rarely need more than one level of nesting, and the `condition` DSL handles the "show when unchecked" case. But if you're building a survey tool with complex branching logic, a recursive group model or expression-string approach would be more expressive.
 
 ### 6. Serialize and restore
 
@@ -329,7 +361,6 @@ Formbaker provides ready-made integrations for common form state libraries.
 | --------------- | ------------------------- | ---------------------------------------------------------------------------- |
 | React Hook Form | `@formbaker/integrations` | [`/react-hook-form`](./packages/formbaker-integrations/src/react-hook-form/) |
 | Angular         | `@formbaker/integrations` | [`/angular`](./packages/formbaker-integrations/src/angular/)                 |
-| NestJS          | `@formbaker/integrations` | [`/nest`](./packages/formbaker-integrations/src/nest/)                       |
 
 Each integration folder has its own README with install instructions, API docs, and examples.
 
@@ -368,14 +399,15 @@ All functions are **immutable** — they return a new form object without modify
 | `getOrderingMap(form)` | Section-question numbering map |
 | `moveNode(form, id, targetId)` | Reorder a node relative to another (renumbers siblings) |
 | `clearForm(form)` | Remove all fields and dependencies |
-| `isVisible(form, nodeId, values)`  | Check if a node is visible given current values (resolves plugin internally) |
+| `isVisible(form, nodeId, values)` | Check if a node is visible given current values (resolves plugin internally) |
 
 ## Built-in plugins
 
-| Name        | Package              | Source                                              |
-| ----------- | -------------------- | --------------------------------------------------- |
-| `"arktype"` | `@formbaker/plugins` | [`/arktype`](./packages/formbaker-plugins/arktype/) |
-| `"zod"`     | `@formbaker/plugins` | [`/zod`](./packages/formbaker-plugins/zod/)         |
+| Name                | Package              | Source                                                              |
+| ------------------- | -------------------- | ------------------------------------------------------------------- |
+| `"arktype"`         | `@formbaker/plugins` | [`/arktype`](./packages/formbaker-plugins/arktype/)                 |
+| `"zod"`             | `@formbaker/plugins` | [`/zod`](./packages/formbaker-plugins/zod/)                         |
+| `"class-validator"` | `@formbaker/plugins` | [`/class-validator`](./packages/formbaker-plugins/class-validator/) |
 
 Each plugin folder has its own README with detailed documentation.
 

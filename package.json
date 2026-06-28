@@ -19,10 +19,13 @@
     "@angular/forms": "^20.3.25",
     "@angular/platform-browser-dynamic": "^20.3.25",
     "@testing-library/react": "^16.3.2",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
     "happy-dom": "^20.10.6",
     "oxfmt": "^0.56.0",
     "oxlint": "^1.71.0",
     "react-dom": "^19.2.7",
+    "reflect-metadata": "^0.2.2",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
