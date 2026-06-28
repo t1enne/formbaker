@@ -4,7 +4,7 @@
  * Uses `validate` and `validateSync` to test actual validation behaviour.
  */
 import "reflect-metadata";
-import { describe, expect, it, beforeAll } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { FormbakerField } from "formbaker";
 import { create, addNode } from "formbaker";
 import { validate, validateSync } from "class-validator";
@@ -31,47 +31,39 @@ describe("class-validator runtime DTO builder", () => {
       ["text", { min: 2, max: 5 }, "ab", ["", "a", "abcdef"]],
       ["number", { required: true }, 25, [undefined, null, "not a number"]],
       ["number", { min: 0, max: 100 }, 0, [-1, 101]],
-      [
-        "select",
-        { required: true },
-        0,
-        [2, null],
-      ],
+      ["select", { required: true }, 0, [2, null]],
       ["checkbox", { required: true }, true, ["yes", undefined]],
       ["textarea", { required: true }, "hello", [""]],
       ["textarea", { min: 10, max: 100 }, "long enough string", ["short"]],
       ["file", { required: true }, { name: "cv.pdf" }, [null]],
-    ] as const)(
-      "%s %j → pass: %j, fail: %j",
-      (fieldType, validation, passValue, failValues) => {
-        let form = create({ pluginName: "zod" });
-        form = addNode(form, {
-          id: "x",
-          type: "field",
-          fieldType: fieldType as FormbakerField["fieldType"],
-          ...(fieldType === "select" ? { options: ["A", "B"] } : {}),
-          validation,
-        });
+    ] as const)("%s %j → pass: %j, fail: %j", (fieldType, validation, passValue, failValues) => {
+      let form = create({ pluginName: "zod" });
+      form = addNode(form, {
+        id: "x",
+        type: "field",
+        fieldType: fieldType as FormbakerField["fieldType"],
+        ...(fieldType === "select" ? { options: ["A", "B"] } : {}),
+        validation,
+      });
 
-        const Dto = formbakerToClassValidator(form);
+      const Dto = formbakerToClassValidator(form);
 
-        // Passing
-        {
-          const dto = new Dto() as Record<string, unknown>;
-          (dto as Record<string, unknown>).x = passValue as unknown;
-          const errors = validateSync(dto);
-          expect(errors, `${fieldType} ${JSON.stringify(passValue)} should pass`).toHaveLength(0);
-        }
+      // Passing
+      {
+        const dto = new Dto() as Record<string, unknown>;
+        (dto as Record<string, unknown>).x = passValue as unknown;
+        const errors = validateSync(dto);
+        expect(errors, `${fieldType} ${JSON.stringify(passValue)} should pass`).toHaveLength(0);
+      }
 
-        // Failing
-        for (const v of failValues) {
-          const dto = new Dto() as Record<string, unknown>;
-          (dto as Record<string, unknown>).x = v as unknown;
-          const errors = validateSync(dto);
-          expect(errors, `${fieldType} ${JSON.stringify(v)} should fail`).not.toHaveLength(0);
-        }
-      },
-    );
+      // Failing
+      for (const v of failValues) {
+        const dto = new Dto() as Record<string, unknown>;
+        (dto as Record<string, unknown>).x = v as unknown;
+        const errors = validateSync(dto);
+        expect(errors, `${fieldType} ${JSON.stringify(v)} should fail`).not.toHaveLength(0);
+      }
+    });
   });
 
   describe("async validation via validate", () => {
@@ -122,10 +114,14 @@ describe("class-validator runtime DTO builder", () => {
 
       const Dto = formbakerToClassValidator(form);
 
-      for (const v of [undefined, null, "hello@example.com"]) {
-        const dto = new Dto() as Record<string, unknown>;
-        (dto as Record<string, unknown>).email = v as unknown;
-        const errors = await validate(dto);
+      const results = await Promise.all(
+        [undefined, null, "hello@example.com"].map(async (v) => {
+          const dto = new Dto() as Record<string, unknown>;
+          (dto as Record<string, unknown>).email = v as unknown;
+          return { v, errors: await validate(dto) };
+        }),
+      );
+      for (const { v, errors } of results) {
         expect(errors, `optional field with ${v}`).toHaveLength(0);
       }
     });

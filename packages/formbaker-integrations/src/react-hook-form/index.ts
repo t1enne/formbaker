@@ -31,8 +31,11 @@ import { standardSchemaResolver } from "@hookform/resolvers/standard-schema";
 import { getSchema, createVisibilityChecker } from "formbaker";
 import type { Formbaker } from "formbaker";
 
-export interface FormbakerFormReturn<Input extends FieldValues, Context, Output>
-  extends UseFormReturn<Input, Context, Output> {
+export interface FormbakerFormReturn<
+  Input extends FieldValues,
+  Context,
+  Output,
+> extends UseFormReturn<Input, Context, Output> {
   /** Check if a field is in the current visible schema. Returns false when
    *  the field is hidden by a dependency or sits inside a hidden section. */
   isInSchema: (fieldId: string) => boolean;

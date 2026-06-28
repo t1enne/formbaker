@@ -10,7 +10,7 @@
  */
 
 import type { StandardSchemaV1 } from "@standard-schema/spec";
-import type { FormbakerField, FormbakerPlugin, Formbaker } from "./types";
+import type { FormbakerField, FormbakerPlugin } from "./types";
 import { create, addNode, addDependency } from "./engine";
 
 // --- Standard Schema helpers ---
@@ -148,13 +148,8 @@ export const testPlugin: FormbakerPlugin = {
  * );
  * ```
  */
-export function buildForm(
-  ...fields: Parameters<typeof addNode>[1][]
-): ReturnType<typeof addNode> {
-  return fields.reduce(
-    (f, node) => addNode(f, node),
-    create({ pluginName: "test" }),
-  );
+export function buildForm(...fields: Parameters<typeof addNode>[1][]): ReturnType<typeof addNode> {
+  return fields.reduce((f, node) => addNode(f, node), create({ pluginName: "test" }));
 }
 
 /**

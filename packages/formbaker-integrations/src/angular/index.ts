@@ -18,12 +18,7 @@
  * const group = formbakerToFormGroup(form, fb);
  * ```
  */
-import type {
-  Formbaker,
-  FormbakerField,
-  FormbakerNode,
-  FormbakerValidation,
-} from "formbaker";
+import type { Formbaker, FormbakerField, FormbakerNode, FormbakerValidation } from "formbaker";
 import { createVisibilityChecker } from "formbaker";
 import { FormBuilder, Validators, type ValidatorFn } from "@angular/forms";
 
@@ -74,8 +69,7 @@ const validatorsOf = (
 const getDefaultValue = (field: FormbakerField): unknown => {
   if (field.fieldType === "text" || field.fieldType === "textarea") return "";
   if (field.fieldType === "number") return null;
-  if (field.fieldType === "checkbox" || field.fieldType === "radio")
-    return false;
+  if (field.fieldType === "checkbox" || field.fieldType === "radio") return false;
   if (field.fieldType === "select") return null;
   if (field.fieldType === "file") return null;
   return "";
@@ -94,9 +88,7 @@ const getVisibleFieldIds = (
     return new Set(fields.map((f) => f.id));
   }
   const isIncluded = createVisibilityChecker(form);
-  const visibleFieldIds = fields
-    .filter((f) => isIncluded(f.id, values))
-    .map((f) => f.id);
+  const visibleFieldIds = fields.filter((f) => isIncluded(f.id, values)).map((f) => f.id);
 
   return new Set(visibleFieldIds);
 };

@@ -2,6 +2,20 @@
   "name": "@formbaker/integrations",
   "version": "0.1.0",
   "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder)",
+  "keywords": [
+    "angular",
+    "constraint-validation",
+    "form",
+    "formbaker",
+    "html5",
+    "integration",
+    "react-hook-form"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nasrt/formbaker"
+  },
   "files": [
     "dist"
   ],
@@ -14,6 +28,10 @@
     "./angular": {
       "types": "./dist/angular/index.d.ts",
       "default": "./dist/angular/index.js"
+    },
+    "./html5": {
+      "types": "./dist/html5/index.d.ts",
+      "default": "./dist/html5/index.js"
     }
   },
   "scripts": {

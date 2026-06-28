@@ -93,8 +93,8 @@ Clears all custom validity messages on visible fields. Useful before re-validati
 - **`form`** — A `Formbaker` form definition.
 - **`getElement`** — `(fieldId: string) => HTMLElement | null` — returns the DOM element for a field.
 
-| Export                    | Type                                                    | Description                                             |
-| ------------------------- | ------------------------------------------------------- | ------------------------------------------------------- |
-| `attachCustomValidation`  | `(form, getElement, options?) => () => void`            | Wire live blur/input validation on form elements.       |
-| `validateForm`            | `(form, getElement) => boolean`                         | Validate all visible fields, show native bubbles.       |
-| `clearValidation`         | `(form, getElement) => void`                            | Clear all custom validity messages.                     |
+| Export                   | Type                                         | Description                                       |
+| ------------------------ | -------------------------------------------- | ------------------------------------------------- |
+| `attachCustomValidation` | `(form, getElement, options?) => () => void` | Wire live blur/input validation on form elements. |
+| `validateForm`           | `(form, getElement) => boolean`              | Validate all visible fields, show native bubbles. |
+| `clearValidation`        | `(form, getElement) => void`                 | Clear all custom validity messages.               |

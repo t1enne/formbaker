@@ -2,8 +2,24 @@
   "name": "formbaker",
   "version": "0.1.0",
   "description": "Formbaker — dynamic form engine with dependency-based visibility and validation",
+  "keywords": [
+    "conditional-form",
+    "dynamic-form",
+    "form",
+    "form-builder",
+    "form-configurator",
+    "schema",
+    "validation"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nasrt/formbaker"
+  },
   "files": [
-    "dist"
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/src/"
   ],
   "type": "module",
   "main": "./dist/index.js",

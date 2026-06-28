@@ -8,11 +8,7 @@ import { describe, expect, it, beforeAll, beforeEach, afterEach } from "vitest";
 import { create, addNode, addDependency, registerPlugin } from "formbaker";
 import { testPlugin, buildForm } from "formbaker/test-utils";
 import type { FormbakerPlugin } from "formbaker";
-import {
-  validateForm,
-  clearValidation,
-  attachCustomValidation,
-} from "../src/html5";
+import { validateForm, clearValidation, attachCustomValidation } from "../src/html5";
 
 // --- HTML5-specific test plugin ---
 //
@@ -28,8 +24,7 @@ const html5TestPlugin: FormbakerPlugin = {
       version: 1,
       vendor: "test",
       validate: (v: unknown) => {
-        if (v === null || typeof v !== "object")
-          return { issues: [{ message: "not object" }] };
+        if (v === null || typeof v !== "object") return { issues: [{ message: "not object" }] };
         const issues: Array<{ message: string; path: [{ key: string }] }> = [];
         const data = v as Record<string, unknown>;
         if (data.name === "" || data.name === undefined) {
@@ -71,9 +66,7 @@ beforeAll(() => {
  *
  * @param fields - Array of { id, type? } where type sets the input type attribute.
  */
-function createFormDOM(
-  fields: Array<{ id: string; type?: string }>,
-): {
+function createFormDOM(fields: Array<{ id: string; type?: string }>): {
   getElement: (id: string) => HTMLElement | null;
   setValue: (id: string, value: string) => void;
   elements: Map<string, HTMLInputElement>;
@@ -118,7 +111,10 @@ describe("HTML5 Constraint Validation integration", () => {
         { id: "name", type: "field", fieldType: "text" },
         { id: "age", type: "field", fieldType: "number" },
       );
-      const { getElement, setValue } = createFormDOM([{ id: "name" }, { id: "age", type: "number" }]);
+      const { getElement, setValue } = createFormDOM([
+        { id: "name" },
+        { id: "age", type: "number" },
+      ]);
       setValue("name", "Alice");
       setValue("age", "30");
 
@@ -148,7 +144,10 @@ describe("HTML5 Constraint Validation integration", () => {
         { id: "name", type: "field", fieldType: "text" },
         { id: "age", type: "field", fieldType: "number" },
       );
-      const { getElement, setValue } = createFormDOM([{ id: "name" }, { id: "age", type: "number" }]);
+      const { getElement, setValue } = createFormDOM([
+        { id: "name" },
+        { id: "age", type: "number" },
+      ]);
       setValue("name", "A");
       setValue("age", "15");
 
@@ -168,7 +167,10 @@ describe("HTML5 Constraint Validation integration", () => {
         { id: "name", type: "field", fieldType: "text" },
         { id: "age", type: "field", fieldType: "number" },
       );
-      const { getElement, setValue } = createFormDOM([{ id: "name" }, { id: "age", type: "number" }]);
+      const { getElement, setValue } = createFormDOM([
+        { id: "name" },
+        { id: "age", type: "number" },
+      ]);
 
       // First validate with empty values — should fail
       validateForm(form, getElement);
@@ -189,9 +191,7 @@ describe("HTML5 Constraint Validation integration", () => {
       // 'extra' is not in the form — should be ignored
       const valid = validateForm(form, getElement);
       expect(valid).toBe(false);
-      expect((getElement("name") as HTMLInputElement).validationMessage).toBe(
-        "Name is required",
-      );
+      expect((getElement("name") as HTMLInputElement).validationMessage).toBe("Name is required");
     });
 
     it("returns true for a form with no visible fields", () => {

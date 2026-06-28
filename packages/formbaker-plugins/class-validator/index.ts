@@ -44,9 +44,7 @@ import {
 // --- Extract field nodes from the form ---
 
 const getFields = (form: Formbaker): FormbakerField[] =>
-  Object.values(form.nodes).filter(
-    (n): n is FormbakerField => n.type === "field",
-  );
+  Object.values(form.nodes).filter((n): n is FormbakerField => n.type === "field");
 
 // --- Options ---
 
@@ -93,10 +91,7 @@ const buildDecorators = (field: FormbakerField): DecoratorFn[] => {
 
   if (isOptional) {
     decs.push(IsOptional());
-  } else if (
-    field.fieldType === "text" ||
-    field.fieldType === "textarea"
-  ) {
+  } else if (field.fieldType === "text" || field.fieldType === "textarea") {
     decs.push(IsNotEmpty());
   } else {
     decs.push(IsDefined());
@@ -129,7 +124,9 @@ export const formbakerToClassValidator = (
 
   // Dynamically create a named class so error messages have clear type names.
   const DtoClass = class {
-    static { Object.defineProperty(this, 'name', { value: className }); }
+    static {
+      Object.defineProperty(this, "name", { value: className });
+    }
   } as new () => Record<string, unknown>;
 
   for (const field of getFields(form)) {
