@@ -26,8 +26,10 @@
   },
   "devDependencies": {
     "@angular/forms": "^22.0.3",
+    "@hookform/resolvers": "^5.4.0",
     "@types/react": "^19.2.17",
-    "formbaker": "*"
+    "formbaker": "*",
+    "react-hook-form": "^7.80.0"
   },
   "peerDependencies": {
     "@angular/forms": ">=14.0.0",
