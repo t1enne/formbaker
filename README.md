@@ -102,9 +102,7 @@ Picture a drag-and-drop UI where admins compose forms from a palette of field ty
     { "id": "has_vehicle", "type": "checkbox", "label": { "eng": "Do you have a vehicle?" } },
     { "id": "license_plate", "type": "text", "validation": { "required": true } }
   ],
-  "dependencies": [
-    { "source": "has_vehicle", "target": "license_plate", "condition": "true" }
-  ]
+  "dependencies": [{ "source": "has_vehicle", "target": "license_plate", "condition": "true" }]
 }
 ```
 
@@ -150,14 +148,17 @@ addDependency(vehicleForm, {
 
 // 3. Use in a React component
 function VehicleForm() {
-  const { register, handleSubmit, watch, formState: { errors } } =
-    useFormbakerForm(vehicleForm, watch());
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useFormbakerForm(vehicleForm, watch());
 
   return (
     <form onSubmit={handleSubmit((data) => console.log(data))}>
       <label>
-        <input type="checkbox" {...register("has_vehicle")} />
-        I own a vehicle
+        <input type="checkbox" {...register("has_vehicle")} />I own a vehicle
       </label>
 
       {/* license_plate only renders (and validates) when has_vehicle is true */}
@@ -194,7 +195,12 @@ registerPlugin("arktype", arktypePlugin);
 // 2. Declare the form structure
 const insuranceForm = create({ pluginName: "arktype" });
 
-addNode(insuranceForm, { id: "name", type: "text", label: "Full name", validation: { required: true } });
+addNode(insuranceForm, {
+  id: "name",
+  type: "text",
+  label: "Full name",
+  validation: { required: true },
+});
 
 addNode(insuranceForm, {
   id: "age",
@@ -296,31 +302,31 @@ Formbaker's dependency graph solves these at the model level rather than at the 
 
 ## API
 
-| Function                           | Purpose                                                 |
-| ---------------------------------- | ------------------------------------------------------- |
-| `registerPlugin(name, plugin)`     | Register a validation plugin by name                    |
-| `create(params)`                   | Create a new form (requires `pluginName`)               |
-| `addNode(form, field)`             | Add a field                                             |
-| `removeNode(form, id)`             | Remove a field (fails if it has outgoing deps)          |
-| `addSection(form, section)`        | Add a section (id must start with `#`)                  |
-| `removeSection(form, id)`          | Remove a section                                        |
-| `addDependency(form, dep)`         | Add a visibility dependency                             |
-| `removeDependency(form, dep)`      | Remove a dependency                                     |
-| `validate(form, values)`           | Validate data against the form's current visible schema |
-| `getSchema(form, values)`          | Get the Standard Schema V1 for the current form state   |
+| Function                       | Purpose                                                 |
+| ------------------------------ | ------------------------------------------------------- |
+| `registerPlugin(name, plugin)` | Register a validation plugin by name                    |
+| `create(params)`               | Create a new form (requires `pluginName`)               |
+| `addNode(form, field)`         | Add a field                                             |
+| `removeNode(form, id)`         | Remove a field (fails if it has outgoing deps)          |
+| `addSection(form, section)`    | Add a section (id must start with `#`)                  |
+| `removeSection(form, id)`      | Remove a section                                        |
+| `addDependency(form, dep)`     | Add a visibility dependency                             |
+| `removeDependency(form, dep)`  | Remove a dependency                                     |
+| `validate(form, values)`       | Validate data against the form's current visible schema |
+| `getSchema(form, values)`      | Get the Standard Schema V1 for the current form state   |
 
-| `getSortedNodes(form)`             | All nodes sorted by order                               |
-| `getOrderingMap(form)`             | Section-question numbering map                          |
-| `moveNode(form, id, targetId)`     | Reorder a node relative to another                      |
-| `clearForm(form)`                  | Remove all fields and dependencies                      |
-| `shouldInclude(form, node, value)` | Check if a node is visible given current values         |
+| `getSortedNodes(form)` | All nodes sorted by order |
+| `getOrderingMap(form)` | Section-question numbering map |
+| `moveNode(form, id, targetId)` | Reorder a node relative to another |
+| `clearForm(form)` | Remove all fields and dependencies |
+| `shouldInclude(form, node, value)` | Check if a node is visible given current values |
 
 ## Built-in plugins
 
-| Name        | Package                     | Import                                                |
-| ----------- | --------------------------- | ----------------------------------------------------- |
-| `"arktype"` | `@formbaker/plugins`        | `import { arktypePlugin } from "@formbaker/plugins/arktype"` |
-| `"zod"`     | `@formbaker/plugins`        | `import { zodPlugin } from "@formbaker/plugins/zod"`         |
+| Name        | Package              | Import                                                       |
+| ----------- | -------------------- | ------------------------------------------------------------ |
+| `"arktype"` | `@formbaker/plugins` | `import { arktypePlugin } from "@formbaker/plugins/arktype"` |
+| `"zod"`     | `@formbaker/plugins` | `import { zodPlugin } from "@formbaker/plugins/zod"`         |
 
 ## Types
 

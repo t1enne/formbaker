@@ -42,23 +42,23 @@ A node has a discriminant `type`:
 
 ```typescript
 interface BaseNode {
-    id: string;
-    order?: number; 
-    label?: string;
-    description?: string;
-    meta?: Record<string, unknown>;
-};
+  id: string;
+  order?: number;
+  label?: string;
+  description?: string;
+  meta?: Record<string, unknown>;
+}
 
-interface FormbakerField extends BaseNode { 
-    type: "field"
-    parentId?: string;
-    validation?: FormbakerValidation;
-    fieldType: keyof FormbakerTypeMap; 
-};
+interface FormbakerField extends BaseNode {
+  type: "field";
+  parentId?: string;
+  validation?: FormbakerValidation;
+  fieldType: keyof FormbakerTypeMap;
+}
 
 interface FormbakerSection extends BaseNode {
-    type: "section"
-};
+  type: "section";
+}
 
 type FormbakerNode = FormbakerField | FormbakerSection;
 ```
@@ -77,6 +77,7 @@ dependencies: {
 ```
 
 **Rules:**
+
 - Source must be a field node (sections have no value to evaluate).
 - Target can be any node — field or section.
 - Cycle detection walks all node types.
@@ -104,6 +105,7 @@ Produces a flat `PositionedNode[]` for consumers.
 ## API Changes
 
 ### Removed
+
 - `addSection(form, section)` — replaced by `addNode(form, { type: "section", ... })`
 - `removeSection(form, sectionId)` — replaced by `removeNode(form, sectionId)`
 - `Formbaker.fields` — replaced by `Formbaker.nodes`
@@ -111,12 +113,14 @@ Produces a flat `PositionedNode[]` for consumers.
 - `FormbakerSection` type — replaced by `FormbakerNode` with `type: "section"`
 
 ### Changed
+
 - `addNode(form, node, opts?)` — optional `{ parentId?: string }`. Sets `order` to sibling count + 1.
 - `moveNode(form, nodeId, targetNodeId)` — re-parents `nodeId` under `targetNodeId`'s parent, places after `targetNodeId`. Renumbers siblings.
 - `removeNode(form, nodeId)` — recursively removes descendants by walking `parentId` pointers.
 - `order` stays as a number but becomes sibling-local (not global). Engine maintains it.
 
 ### Unchanged
+
 - `addDependency` / `removeDependency` — same signatures
 - `validate` / `getSchema` — same signatures
 - `registerPlugin` / plugin interface — plugins still see flat fields
@@ -134,21 +138,21 @@ is_minor=false → show #adults
 This cannot be expressed with engine-level combinators alone. Solution: the plugin's `evaluateCondition` handles negation. The test plugin (and real plugins) can support `condition: "false"` meaning "value is falsy." This is a plugin concern, not an engine concern.
 
 ```typescript
-addDependency(form, { source: "is_minor", target: "#minors",  condition: "true" });   // show when truthy
-addDependency(form, { source: "is_minor", target: "#adults",  condition: "false" });  // show when falsy
+addDependency(form, { source: "is_minor", target: "#minors", condition: "true" }); // show when truthy
+addDependency(form, { source: "is_minor", target: "#adults", condition: "false" }); // show when falsy
 ```
 
 ## Files to Modify
 
-| File | Scope |
-|------|-------|
-| `packages/formbaker/src/types.ts` | New `FormbakerNode`, updated `Formbaker`, removed `FormbakerSection`, updated `PositionedNode` |
-| `packages/formbaker/src/engine.ts` | All functions updated. `addSection`/`removeSection` removed. `addNode` gains `parentId`. `removeNode` recursive. `getSortedNodes` DFS walk. `getSchema` iterates nodes. |
-| `packages/formbaker/src/utils.ts` | `shouldInclude` with ancestor visibility check (walk `parentId` chain). |
-| `packages/formbaker/index.ts` | Exports updated (remove `addSection`/`removeSection`/`FormbakerSection`) |
-| `packages/formbaker/tests/*.spec.ts` | All tests updated to new API |
-| `packages/formbaker-plugins/*.ts` | Update if they reference removed types |
-| `packages/formbaker-integrations/src/*.ts` | Update `form.fields` → `form.nodes`, `form.sections` → `form.nodes` |
+| File                                       | Scope                                                                                                                                                                   |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/formbaker/src/types.ts`          | New `FormbakerNode`, updated `Formbaker`, removed `FormbakerSection`, updated `PositionedNode`                                                                          |
+| `packages/formbaker/src/engine.ts`         | All functions updated. `addSection`/`removeSection` removed. `addNode` gains `parentId`. `removeNode` recursive. `getSortedNodes` DFS walk. `getSchema` iterates nodes. |
+| `packages/formbaker/src/utils.ts`          | `shouldInclude` with ancestor visibility check (walk `parentId` chain).                                                                                                 |
+| `packages/formbaker/index.ts`              | Exports updated (remove `addSection`/`removeSection`/`FormbakerSection`)                                                                                                |
+| `packages/formbaker/tests/*.spec.ts`       | All tests updated to new API                                                                                                                                            |
+| `packages/formbaker-plugins/*.ts`          | Update if they reference removed types                                                                                                                                  |
+| `packages/formbaker-integrations/src/*.ts` | Update `form.fields` → `form.nodes`, `form.sections` → `form.nodes`                                                                                                     |
 
 ## Test Additions
 
@@ -164,6 +168,7 @@ addDependency(form, { source: "is_minor", target: "#adults",  condition: "false"
 10. Root-level fields still work (parentId omitted → `""`)
 
 ## Non-Goals
+
 - Lazy loading of section subtrees
 - Section-level validation rules
 - Sections as dependency sources (sections have no value)

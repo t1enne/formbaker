@@ -10,7 +10,7 @@ import {
   FormbakerSection,
   FormbakerPlugin,
 } from "./types";
-import { isEqualDepencency, invariant, omit, shouldInclude } from "./utils";
+import { isEqualDepencency, invariant, omit, shouldInclude, isField, isSection } from "./utils";
 
 const pluginRegistry = new Map<string, FormbakerPlugin>();
 
@@ -49,10 +49,13 @@ const create = <S extends PlainObject, T extends Formbaker<S>>(params: Partial<T
 
 /**
  * Get the sibling-local order for a new node: max existing order among
- * nodes with the same parentId, plus 1. Returns 1 if no siblings exist.
+ * nodes (fields only — sections are always root-level) with the same
+ * parentId, plus 1. Returns 1 if no siblings exist.
  */
 const nextSiblingOrder = (form: Formbaker, parentId: string | undefined): number => {
-  const siblings = Object.values(form.nodes).filter((n) => (n.parentId ?? "") === (parentId ?? ""));
+  const siblings = Object.values(form.nodes).filter(
+    (n): n is FormbakerField => isField(n) && (n.parentId ?? "") === (parentId ?? ""),
+  );
   const maxOrder = Math.max(0, ...siblings.map((n) => n.order ?? 0));
   return Math.max(1, maxOrder + 1);
 };
@@ -61,15 +64,24 @@ const nextSiblingOrder = (form: Formbaker, parentId: string | undefined): number
 const nodeBase = (
   form: Formbaker,
   node: Partial<FormbakerNode> & Pick<FormbakerNode, "id" | "type">,
-  parentId: string | undefined,
-) => ({
+  parentId?: string,
+): {
+  id: string;
+  type: "field" | "section";
+  order: number;
+  label?: string;
+  description?: string;
+  meta?: Record<string, unknown>;
+  parentId?: string;
+} => ({
   id: node.id,
   type: node.type,
-  parentId,
   order: nextSiblingOrder(form, parentId),
   label: node.label,
   description: node.description,
   meta: node.meta,
+  // Only fields carry a parentId; sections are always root-level.
+  ...(isField(node as FormbakerNode) ? { parentId } : {}),
 });
 
 /** Build a full field node from a partial input. */
@@ -97,11 +109,11 @@ const fieldNode = (
 const sectionNode = (
   form: Formbaker,
   node: Partial<FormbakerNode> & Pick<FormbakerNode, "id" | "type">,
-  parentId: string | undefined,
-): FormbakerSection => ({
-  ...nodeBase(form, node, parentId),
-  type: "section",
-});
+): FormbakerSection =>
+  ({
+    ...nodeBase(form, node),
+    type: "section",
+  }) as FormbakerSection;
 
 const addNode = <T extends Formbaker>(
   form: T,
@@ -109,13 +121,15 @@ const addNode = <T extends Formbaker>(
 ): T => {
   invariant(!form.nodes[node.id], `Duplicate node id ${node.id}`);
 
-  const parentId = node.parentId;
-  if (node.type === "section") {
-    invariant(node.id[0] === "#", "Section id must start with #");
+  const node2 = node as FormbakerNode;
+  const parentId = isField(node2) ? node2.parentId : undefined;
+  if (isSection(node2)) {
+    invariant(node2.id[0] === "#", "Section id must start with #");
   }
 
-  const fullNode: FormbakerNode =
-    node.type === "field" ? fieldNode(form, node, parentId) : sectionNode(form, node, parentId);
+  const fullNode: FormbakerNode = isField(node2)
+    ? fieldNode(form, node, parentId)
+    : sectionNode(form, node); // no nested sections
 
   return {
     ...form,
@@ -131,7 +145,7 @@ const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): 
   const sourceNode = form.nodes[source];
 
   invariant(sourceNode, `Source node "${source}" not found`);
-  invariant(sourceNode.type === "field", `Cannot introduce dependencies from a section ("${source}")`);
+  invariant(isField(sourceNode), `Cannot introduce dependencies from a section ("${source}")`);
 
   invariant(target !== "" && source !== "", "Empty target/source ids");
   invariant(!isCyclical(form.dependencies, dep), "Cannot introduce cyclical dependency");
@@ -154,10 +168,7 @@ const addDependency = <T extends Formbaker>(form: T, dep: FormbakerDependency): 
   };
 };
 
-const removeDependency = <T extends Formbaker>(
-  form: T,
-  dependency: FormbakerDependency,
-): T => {
+const removeDependency = <T extends Formbaker>(form: T, dependency: FormbakerDependency): T => {
   const { target, source } = dependency;
   const fwdList = (form.dependencies.forward[source] ?? []).filter(
     (d) => !isEqualDepencency(dependency, d),
@@ -185,11 +196,14 @@ const removeDependency = <T extends Formbaker>(
  * Recursively collect all descendant node IDs (including the given nodeId)
  * by walking parentId pointers. Pure — no mutation.
  */
-const collectDescendants = (nodes: Record<string, FormbakerNode>, nodeId: string): readonly string[] =>
+const collectDescendants = (
+  nodes: Record<string, FormbakerNode>,
+  nodeId: string,
+): readonly string[] =>
   Object.values(nodes)
-    .filter((n) => n.parentId === nodeId)
+    .filter((n): n is FormbakerField => isField(n) && n.parentId === nodeId)
     .reduce<readonly string[]>(
-      (acc, child) => [...acc, ...collectDescendants(nodes, child.id)],
+      (acc, child) => acc.concat(collectDescendants(nodes, child.id)),
       [nodeId],
     );
 
@@ -241,6 +255,9 @@ const removeNode = <T extends Formbaker>(form: T, nodeId: string): [T, boolean] 
   return [{ ...form, nodes, dependencies: deps }, true];
 };
 
+const sortByOrder = (a: FormbakerNode, b: FormbakerNode): number =>
+  (a.order ?? 0) - (b.order ?? 0);
+
 const isCyclical = (
   dependencies: Formbaker["dependencies"],
   { target, source }: FormbakerDependency,
@@ -285,7 +302,7 @@ const clearForm = <T extends Formbaker>(form: T): T => {
 
 /** Extract field nodes from the nodes map. */
 const getFieldNodes = (form: Formbaker): FormbakerField[] => {
-  return Object.values(form.nodes).filter((n): n is FormbakerField => n.type === "field");
+  return Object.values(form.nodes).filter((n): n is FormbakerField => isField(n));
 };
 
 /**
@@ -319,25 +336,32 @@ const getSortedNodes = <S extends PlainObject, T extends Formbaker<S>>(
   form: T,
 ): Array<PositionedNode<S>> => {
   const allNodes = Object.values(form.nodes);
-  const sortByOrder = (a: FormbakerNode, b: FormbakerNode): number => (a.order ?? 0) - (b.order ?? 0);
 
-  // Partition into roots and children, building adjacency via fold
+  // Partition into roots and children, building adjacency via fold.
+  // Only fields can have a parentId; sections are always root-level.
   const childrenByParent = allNodes
-    .filter((n) => n.parentId && form.nodes[n.parentId])
+    .filter(
+      (n) =>
+        isField(n) &&
+        !!(n as FormbakerField).parentId &&
+        !!form.nodes[(n as FormbakerField).parentId!],
+    )
     .reduce<Record<string, FormbakerNode[]>>((acc, n) => {
-      const pid = n.parentId!;
-      return { ...acc, [pid]: [...(acc[pid] ?? []), n].sort(sortByOrder) };
+      const pid = (n as FormbakerField).parentId!;
+      const group = acc[pid] ? acc[pid].concat(n) : [n];
+      acc[pid] = group.toSorted(sortByOrder);
+      return acc;
     }, {});
 
   const rootNodes = allNodes
-    .filter((n) => !n.parentId || !form.nodes[n.parentId])
+    .filter((n) => isSection(n) || !isField(n) || !n.parentId || !form.nodes[n.parentId])
     .toSorted(sortByOrder);
 
   // DFS walk
   const visit = (nodes: FormbakerNode[]): Array<PositionedNode<S>> =>
     nodes.flatMap((node) => {
       const pn: PositionedNode<S> = {
-        type: node.type === "section" ? "_section" : "_node",
+        type: isSection(node) ? "_section" : "_node",
         id: node.id,
         node: node as FormbakerNode & S,
         position: { x: 0, y: 0 },
@@ -384,27 +408,30 @@ const moveNode = <T extends Formbaker>(form: T, nodeId: string, targetNodeId: st
   invariant(nodeId !== targetNodeId, "Cannot move a node to itself");
 
   // Determine new parentId: same parent as the target
-  const newParentId = target.parentId;
+  // Only fields can have a parentId; sections stay at root level.
+  const newParentId = isField(target) ? target.parentId : undefined;
   const parentKey = newParentId ?? "";
 
   // All siblings under the same parent (excluding the moving node), sorted
   const siblings = Object.values(form.nodes)
-    .filter((n) => (n.parentId ?? "") === parentKey && n.id !== nodeId)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    .filter((n) => isSection(n) || (isField(n) && n.parentId === newParentId))
+    .filter((n) => n.id !== nodeId)
+    .toSorted((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
   // Pure insert: slice at insert point, compose new array
   const targetIdx = siblings.findIndex((n) => n.id === targetNodeId);
-  const reordered = [
-    ...siblings.slice(0, targetIdx + 1),
-    node,
-    ...siblings.slice(targetIdx + 1),
-  ];
+  const reordered = [...siblings.slice(0, targetIdx + 1), node, ...siblings.slice(targetIdx + 1)];
 
   // Pure renumber: map to updated nodes, then fold into the nodes record
   const renumbered = reordered.map((n, idx) => {
     const newOrder = idx + 1;
-    if ((n.order ?? 0) === newOrder && (n.parentId ?? "") === parentKey) return [n.id, n] as const;
-    return [n.id, { ...n, order: newOrder, parentId: newParentId }] as const;
+    if ((n.order ?? 0) === newOrder && (!isField(n) || (n.parentId ?? "") === parentKey))
+      return [n.id, n] as const;
+    // Only fields carry parentId
+    const updated = isSection(n)
+      ? { ...n, order: newOrder }
+      : { ...n, order: newOrder, parentId: newParentId };
+    return [n.id, updated] as const;
   });
   const updated = Object.fromEntries(renumbered);
 

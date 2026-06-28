@@ -8,7 +8,7 @@ import {
   getSortedNodes,
   validate,
   registerPlugin,
-} from "formbaker";
+} from "../src/engine";
 import { testPlugin } from "./testPlugin";
 
 describe("sections as tree nodes", () => {
@@ -17,9 +17,9 @@ describe("sections as tree nodes", () => {
   });
 
   it("rejects section ids without leading #", () => {
-    expect(() =>
-      addNode(create({ pluginName: "test" }), { id: "s1", type: "section" }),
-    ).toThrow("Section id must start with #");
+    expect(() => addNode(create({ pluginName: "test" }), { id: "s1", type: "section" })).toThrow(
+      "Section id must start with #",
+    );
   });
 
   it("accepts section ids with leading #", () => {
@@ -35,9 +35,24 @@ describe("sections as tree nodes", () => {
   it("assigns sibling-local order within the same parent", () => {
     let form = create({ pluginName: "test" });
     form = addNode(form, { id: "#s1", type: "section" });
-    form = addNode(form, { id: "a", type: "field", fieldType: "text", parentId: "#s1" });
-    form = addNode(form, { id: "b", type: "field", fieldType: "text", parentId: "#s1" });
-    form = addNode(form, { id: "c", type: "field", fieldType: "text", parentId: "#s1" });
+    form = addNode(form, {
+      id: "a",
+      type: "field",
+      fieldType: "text",
+      parentId: "#s1",
+    });
+    form = addNode(form, {
+      id: "b",
+      type: "field",
+      fieldType: "text",
+      parentId: "#s1",
+    });
+    form = addNode(form, {
+      id: "c",
+      type: "field",
+      fieldType: "text",
+      parentId: "#s1",
+    });
 
     expect(form.nodes.a!.order).toBe(1);
     expect(form.nodes.b!.order).toBe(2);
@@ -51,8 +66,18 @@ describe("sections as tree nodes", () => {
   it("removing a section cascades to its children", () => {
     let form = create({ pluginName: "test" });
     form = addNode(form, { id: "#s1", type: "section" });
-    form = addNode(form, { id: "child1", type: "field", fieldType: "text", parentId: "#s1" });
-    form = addNode(form, { id: "child2", type: "field", fieldType: "text", parentId: "#s1" });
+    form = addNode(form, {
+      id: "child1",
+      type: "field",
+      fieldType: "text",
+      parentId: "#s1",
+    });
+    form = addNode(form, {
+      id: "child2",
+      type: "field",
+      fieldType: "text",
+      parentId: "#s1",
+    });
 
     const [result] = removeNode(form, "#s1");
     expect(result.nodes["#s1"]).toBeUndefined();
@@ -63,7 +88,12 @@ describe("sections as tree nodes", () => {
   it("removing a section clears dependency edges from/to descendants", () => {
     let form = create({ pluginName: "test" });
     form = addNode(form, { id: "#s1", type: "section" });
-    form = addNode(form, { id: "trigger", type: "field", fieldType: "checkbox", parentId: "#s1" });
+    form = addNode(form, {
+      id: "trigger",
+      type: "field",
+      fieldType: "checkbox",
+      parentId: "#s1",
+    });
     form = addNode(form, {
       id: "target",
       type: "field",
@@ -164,18 +194,5 @@ describe("sections as tree nodes", () => {
     expect(validate(form, { hideSwitch: false }).success).toBe(true);
     expect(validate(form, { hideSwitch: true }).success).toBe(false);
     expect(validate(form, { hideSwitch: true, child: "ok" }).success).toBe(true);
-  });
-
-  it("supports nested sections (section tree)", () => {
-    let form = create({ pluginName: "test" });
-    form = addNode(form, { id: "#root", type: "section", label: "Root" });
-    form = addNode(form, { id: "#child", type: "section", label: "Child", parentId: "#root" });
-    form = addNode(form, { id: "leaf", type: "field", fieldType: "text", parentId: "#child" });
-
-    const sorted = getSortedNodes(form);
-    expect(sorted.map((n) => n.id)).toEqual(["#root", "#child", "leaf"]);
-
-    const [result] = removeNode(form, "#root");
-    expect(Object.keys(result.nodes)).toEqual([]);
   });
 });

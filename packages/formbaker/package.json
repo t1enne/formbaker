@@ -2,6 +2,9 @@
   "name": "formbaker",
   "version": "0.1.0",
   "description": "Formbaker — dynamic form engine with dependency-based visibility and validation",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,9 +14,6 @@
       "default": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"

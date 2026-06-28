@@ -2,6 +2,9 @@
   "name": "@formbaker/integrations",
   "version": "0.1.0",
   "description": "Framework integrations for Formbaker (react-hook-form, Angular FormBuilder, Nest class-validator)",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./react-hook-form": {
@@ -17,9 +20,6 @@
       "default": "./dist/nest.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"

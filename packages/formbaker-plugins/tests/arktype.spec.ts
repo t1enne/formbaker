@@ -5,8 +5,37 @@
  * edges, and plugin-specific features (DSL conditions, mergeFields).
  */
 import { describe, expect, it, beforeAll } from "vitest";
+import type { FormbakerField, Formbaker } from "formbaker";
 import { create, addNode, addDependency, validate, registerPlugin } from "formbaker";
+import type { FormbakerDependency } from "formbaker";
 import { arktypePlugin } from "@formbaker/plugins/arktype";
+
+const withDep = (
+  condition: string,
+  parentFieldType: FormbakerField["fieldType"] = "text",
+  childFieldType: FormbakerField["fieldType"] = "text",
+  parentOpts?: Record<string, unknown>,
+): Formbaker =>
+  addDependency(
+    create({
+      pluginName: "arktype",
+      nodes: {
+        parent: {
+          id: "parent",
+          type: "field",
+          fieldType: parentFieldType,
+          ...parentOpts,
+        },
+        child: {
+          id: "child",
+          type: "field",
+          fieldType: childFieldType,
+          validation: { required: true },
+        },
+      },
+    } as any),
+    { source: "parent", target: "child", condition } as FormbakerDependency,
+  );
 
 describe("arktypePlugin", () => {
   beforeAll(() => {
@@ -16,25 +45,27 @@ describe("arktypePlugin", () => {
   describe("per-field validation", () => {
     it.each([
       // [fieldType, validation, passing, failing]
-      ["text",   { required: true },        ["Alice"],           ["", null, undefined]],
-      ["text",   { min: 2, max: 5 },         ["ab", "abcde"],     ["a", "abcdef"]],
-      ["text",   {},                         ["hello", null, undefined], []],
-      ["number", { required: true },         [25],                [undefined, null, "nope"]],
-      ["number", { min: 0, max: 100 },       [0, 100],            [-1, 101]],
-      ["number", { min: 0 },                 [0, 0.5, 1e6],       [-1]],
-      ["number", {},                         [42, null, undefined], []],
-      ["select", { required: true },         [0, 1],              [2, null]],
-      ["select", {},                         [null, undefined, 0], []],
-      ["checkbox", { required: true },       [true, false],        ["yes", undefined]],
-      ["checkbox", {},                       [null, undefined, false, true], []],
-      ["radio", { required: true },          [true, false],        ["male"]],
-      ["textarea", { required: true },       ["I am..."],          [""]],
-      ["textarea", { min: 10, max: 100 },    ["long enough string"], ["short"]],
-      ["file", { required: true },           [{ name: "cv.pdf" }], [null]],
-      ["file", {},                           [null, undefined],    []],
+      ["text", { required: true }, ["Alice"], ["", null, undefined]],
+      ["text", { min: 2, max: 5 }, ["ab", "abcde"], ["a", "abcdef"]],
+      ["text", {}, ["hello", null, undefined], []],
+      ["number", { required: true }, [25], [undefined, null, "nope"]],
+      ["number", { min: 0, max: 100 }, [0, 100], [-1, 101]],
+      ["number", { min: 0 }, [0, 0.5, 1e6], [-1]],
+      ["number", {}, [42, null, undefined], []],
+      ["select", { required: true }, [0, 1], [2, null]],
+      ["select", {}, [null, undefined, 0], []],
+      ["checkbox", { required: true }, [true, false], ["yes", undefined]],
+      ["checkbox", {}, [null, undefined, false, true], []],
+      ["radio", { required: true }, [true, false], ["male"]],
+      ["textarea", { required: true }, ["I am..."], [""]],
+      ["textarea", { min: 10, max: 100 }, ["long enough string"], ["short"]],
+      ["file", { required: true }, [{ name: "cv.pdf" }], [null]],
+      ["file", {}, [null, undefined], []],
     ] as const)("%s %j → pass: %j, fail: %j", (fieldType, validation, passing, failing) => {
       const form = addNode(create({ pluginName: "arktype" }), {
-        id: "x", type: "field", fieldType,
+        id: "x",
+        type: "field",
+        fieldType: fieldType as FormbakerField["fieldType"],
         ...(fieldType === "select" ? { options: ["A", "B"] } : {}),
         validation,
       });
@@ -45,8 +76,18 @@ describe("arktypePlugin", () => {
 
   it("validates multiple fields together", () => {
     let form = create({ pluginName: "arktype" });
-    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
-    form = addNode(form, { id: "age", type: "field", fieldType: "number", validation: { min: 18 } });
+    form = addNode(form, {
+      id: "name",
+      type: "field",
+      fieldType: "text",
+      validation: { required: true },
+    });
+    form = addNode(form, {
+      id: "age",
+      type: "field",
+      fieldType: "number",
+      validation: { min: 18 },
+    });
     expect(validate(form, { name: "Bob", age: 25 }).success).toBe(true);
     expect(validate(form, { name: "Bob", age: 10 }).success).toBe(false);
   });
@@ -57,7 +98,12 @@ describe("arktypePlugin", () => {
 
   it("composes multiple field schemas into one object schema", () => {
     let form = create({ pluginName: "arktype" });
-    form = addNode(form, { id: "a", type: "field", fieldType: "text", validation: { required: true } });
+    form = addNode(form, {
+      id: "a",
+      type: "field",
+      fieldType: "text",
+      validation: { required: true },
+    });
     form = addNode(form, { id: "b", type: "field", fieldType: "number", validation: { min: 0 } });
     const result = validate(form, { a: "hi", b: 5 });
     expect(result.success).toBe(true);
@@ -65,18 +111,6 @@ describe("arktypePlugin", () => {
   });
 
   describe("evaluateCondition (arktype DSL)", () => {
-    const withDep = (condition: string, parentFieldType = "text", childFieldType = "text", parentOpts?: Record<string, unknown>) =>
-      addDependency(
-        create({
-          pluginName: "arktype",
-          nodes: {
-            parent: { id: "parent", type: "field", fieldType: parentFieldType, ...parentOpts },
-            child: { id: "child", type: "field", fieldType: childFieldType, validation: { required: true } },
-          },
-        }),
-        { source: "parent", target: "child", condition },
-      );
-
     it("type name: 'string' matches strings", () => {
       const form = withDep("string");
       expect(validate(form, { parent: null }).success).toBe(true);

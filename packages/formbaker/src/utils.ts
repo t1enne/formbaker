@@ -1,4 +1,15 @@
-import { Formbaker, FormbakerDependency, FormbakerNode } from "./types";
+import {
+  Formbaker,
+  FormbakerDependency,
+  FormbakerNode,
+  FormbakerField,
+  FormbakerSection,
+} from "./types";
+
+// --- Type guards ---
+
+export const isField = (n: FormbakerNode): n is FormbakerField => n.type === "field";
+export const isSection = (n: FormbakerNode): n is FormbakerSection => n.type === "section";
 
 /** Signature for a plugin's dependency evaluation. */
 type EvaluateCondition = (condition: unknown, value: unknown) => boolean;
@@ -6,9 +17,10 @@ type EvaluateCondition = (condition: unknown, value: unknown) => boolean;
 /**
  * Checks if a node should be included based on:
  * 1. Its own backward dependencies.
- * 2. The visibility of all ancestor sections (via parentId chain).
+ * 2. The visibility of all ancestor sections (via parentId chain on fields).
  *
  * Dependency conditions are evaluated via the plugin's evaluateCondition callback.
+ * Sections are always root-level — only fields can have a parentId.
  */
 const shouldInclude = (
   form: Formbaker,
@@ -20,15 +32,15 @@ const shouldInclude = (
     return false;
   }
 
-  // Check visibility of each ancestor in the parentId chain.
-  // If any ancestor section is hidden, this node is hidden.
+  // Fields may have a parentId linking to a section; walk the ancestor chain.
+  // Sections are always root-level and have no parentId.
   const checkAncestors = (n: FormbakerNode): boolean => {
-    if (!n.parentId) return true;
-    const parent = form.nodes[n.parentId];
-    if (!parent) return true; // parent missing — treat as visible
-    // Check the parent's own backward deps
+    if (!isField(n)) return true;
+    const pid = n.parentId;
+    if (!pid) return true;
+    const parent = form.nodes[pid];
+    if (!parent) return true;
     if (!checkNodeDeps(form, parent, value, evaluateCondition)) return false;
-    // Recurse further up
     return checkAncestors(parent);
   };
 
@@ -115,9 +127,7 @@ const omit = <T extends Record<string, unknown>, K extends string>(
   keys: readonly K[],
 ): Omit<T, K> => {
   const keySet = new Set<string>(keys);
-  return Object.fromEntries(
-    Object.entries(obj).filter(([k]) => !keySet.has(k)),
-  ) as Omit<T, K>;
+  return Object.fromEntries(Object.entries(obj).filter(([k]) => !keySet.has(k))) as Omit<T, K>;
 };
 
 const isNumber = (v: unknown): v is number => typeof v === "number" && !Number.isNaN(v);

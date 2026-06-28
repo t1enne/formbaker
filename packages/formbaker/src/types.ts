@@ -77,7 +77,6 @@ export interface FormbakerField {
 export interface FormbakerSection {
   id: string;
   type: "section";
-  parentId?: string;
   order?: number;
   label?: string;
   description?: string;

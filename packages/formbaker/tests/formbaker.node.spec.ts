@@ -9,7 +9,9 @@ describe("formbaker", () => {
 
   it("throws on duplicate node ids", () => {
     const form = addNode(create({ pluginName: "test" }), {
-      id: "personal", type: "field", fieldType: "text",
+      id: "personal",
+      type: "field",
+      fieldType: "text",
     });
     expect(() => addNode(form, { id: "personal", type: "field", fieldType: "text" })).toThrow();
   });
@@ -20,12 +22,16 @@ describe("formbaker", () => {
       pluginName: "test",
       nodes: {
         b: {
-          id: "b", type: "field", fieldType: "text",
+          id: "b",
+          type: "field",
+          fieldType: "text",
           defaultValue: null,
           validation: { required: { message: "Please pick one" }, max: 5 },
         },
         age: {
-          id: "age", type: "field", fieldType: "number",
+          id: "age",
+          type: "field",
+          fieldType: "number",
           validation: { required: { message: "Age is required" }, min: 1, max: 150 },
         },
       },
@@ -45,7 +51,10 @@ describe("formbaker", () => {
 
   it("accepts nullable fields", () => {
     const form = addNode(create({ pluginName: "test" }), {
-      id: "b", type: "field", fieldType: "text", defaultValue: null,
+      id: "b",
+      type: "field",
+      fieldType: "text",
+      defaultValue: null,
     });
     expect(validate(form, { b: null }).success).toBe(true);
     expect(validate(form, { b: "b" }).success).toBe(true);

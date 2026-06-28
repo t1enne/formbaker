@@ -2,6 +2,9 @@
   "name": "@formbaker/plugins",
   "version": "0.1.0",
   "description": "Validation plugins for Formbaker (arktype, zod)",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "exports": {
     "./arktype": {
@@ -13,9 +16,6 @@
       "default": "./dist/zod.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc",
     "prepublishOnly": "npm run build"

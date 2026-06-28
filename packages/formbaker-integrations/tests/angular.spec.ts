@@ -15,8 +15,8 @@ import {
 // --- Fakes ---
 
 const fakeFb: FormBuilderLike = {
-  control(value, validators) {
-    return { value, _validators: validators ?? [] };
+  control(value) {
+    return { value };
   },
   group(controls) {
     return { controls };
@@ -25,12 +25,12 @@ const fakeFb: FormBuilderLike = {
 
 const fakeValidators: FormbakerValidators = {
   required: (msg) => (() => ({ required: true, message: msg })) as unknown as ValidatorFn,
-  minLength: (v, msg) =>
-    (() => ({ minLength: true, value: v, message: msg })) as unknown as ValidatorFn,
-  maxLength: (v, msg) =>
-    (() => ({ maxLength: true, value: v, message: msg })) as unknown as ValidatorFn,
-  min: (v, msg) => (() => ({ min: true, value: v, message: msg })) as unknown as ValidatorFn,
-  max: (v, msg) => (() => ({ max: true, value: v, message: msg })) as unknown as ValidatorFn,
+  minLength: (_v, msg) =>
+    (() => ({ minLength: true, value: _v, message: msg })) as unknown as ValidatorFn,
+  maxLength: (_v, msg) =>
+    (() => ({ maxLength: true, value: _v, message: msg })) as unknown as ValidatorFn,
+  min: (_v, msg) => (() => ({ min: true, value: _v, message: msg })) as unknown as ValidatorFn,
+  max: (_v, msg) => (() => ({ max: true, value: _v, message: msg })) as unknown as ValidatorFn,
 };
 
 describe("angular FormBuilder integration", () => {
@@ -52,28 +52,72 @@ describe("angular FormBuilder integration", () => {
 
   it("applies required/min/max validators based on validation config", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "name", type: "field", fieldType: "text", validation: { required: true } });
-    form = addNode(form, { id: "age", type: "field", fieldType: "number", validation: { min: 18, max: 120 } });
+    form = addNode(form, {
+      id: "name",
+      type: "field",
+      fieldType: "text",
+      validation: { required: true },
+    });
+    form = addNode(form, {
+      id: "age",
+      type: "field",
+      fieldType: "number",
+      validation: { min: 18, max: 120 },
+    });
 
-    const group = formbakerToFormGroup(form, fakeFb, fakeValidators);
-    const nameCtrl = group.controls["name"]! as any;
-    const ageCtrl = group.controls["age"]! as any;
+    const called: string[] = [];
+    const spy: FormbakerValidators = {
+      required: (_m) => {
+        called.push("required");
+        return (() => ({ required: true })) as unknown as ValidatorFn;
+      },
+      minLength: (_v, _m) => {
+        called.push("minLength");
+        return (() => ({})) as unknown as ValidatorFn;
+      },
+      maxLength: (_v, _m) => {
+        called.push("maxLength");
+        return (() => ({})) as unknown as ValidatorFn;
+      },
+      min: (_v, _m) => {
+        called.push("min");
+        return (() => ({})) as unknown as ValidatorFn;
+      },
+      max: (_v, _m) => {
+        called.push("max");
+        return (() => ({})) as unknown as ValidatorFn;
+      },
+    };
 
-    expect(nameCtrl._validators.length).toBe(1); // required
-    expect(ageCtrl._validators.length).toBe(2);  // min + max
+    formbakerToFormGroup(form, fakeFb, spy);
+    expect(called).toEqual(["required", "min", "max"]);
   });
 
   it("omits required validator for optional fields", () => {
     let form = create({ pluginName: "zod" });
-    form = addNode(form, { id: "bio", type: "field", fieldType: "textarea", validation: { min: 10 } });
+    form = addNode(form, {
+      id: "bio",
+      type: "field",
+      fieldType: "textarea",
+      validation: { min: 10 },
+    });
 
     const called: string[] = [];
     const spyValidators: FormbakerValidators = {
-      required: (msg) => { called.push("required"); return fakeValidators.required(msg); },
-      minLength: (v, msg) => { called.push("minLength"); return fakeValidators.minLength(v, msg); },
-      maxLength: (v, msg) => { called.push("maxLength"); return fakeValidators.maxLength(v, msg); },
-      min: (v, msg) => called.push("min") as never,
-      max: (v, msg) => called.push("max") as never,
+      required: (_m) => {
+        called.push("required");
+        return fakeValidators.required("");
+      },
+      minLength: (_v, _m) => {
+        called.push("minLength");
+        return fakeValidators.minLength(0, "");
+      },
+      maxLength: (_v, _m) => {
+        called.push("maxLength");
+        return fakeValidators.maxLength(0, "");
+      },
+      min: (_v, _m) => called.push("min") as never,
+      max: (_v, _m) => called.push("max") as never,
     };
     formbakerToFormGroup(form, fakeFb, spyValidators);
     expect(called).not.toContain("required");
@@ -81,7 +125,9 @@ describe("angular FormBuilder integration", () => {
   });
 
   it("produces empty group when no fields", () => {
-    expect(formbakerToFormGroup(create({ pluginName: "zod" }), fakeFb, fakeValidators).controls).toEqual({});
+    expect(
+      formbakerToFormGroup(create({ pluginName: "zod" }), fakeFb, fakeValidators).controls,
+    ).toEqual({});
   });
 
   it("rebuildFormGroup adds new controls and removes deleted ones", () => {
@@ -93,9 +139,17 @@ describe("angular FormBuilder integration", () => {
     let removed = "";
     const mutableGroup: FormGroupLike = {
       controls: ctrls,
-      addControl(name, ctrl) { added = name; ctrls[name] = ctrl; },
-      removeControl(name) { removed = name; delete ctrls[name]; },
-      get(name) { return ctrls[name] ?? null; },
+      addControl(name, ctrl) {
+        added = name;
+        ctrls[name] = ctrl;
+      },
+      removeControl(name) {
+        removed = name;
+        delete ctrls[name];
+      },
+      get(name) {
+        return ctrls[name] ?? null;
+      },
     };
 
     let form = create({ pluginName: "zod" });
